@@ -1,0 +1,9 @@
+[submodule "tracker_CLASS"]
+	path = tracker_CLASS
+	url = https://github.com/mive93/tracker_CLASS
+[submodule "tkDNN"]
+	path = tkDNN
+	url = https://github.com/ceccocats/tkDNN
+[submodule "masa_protocol"]
+	path = masa_protocol
+	url = gitlab@git.hipert.unimore.it:rcavicchioli/masa_protocol.git
