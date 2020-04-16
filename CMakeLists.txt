@@ -31,6 +31,7 @@ find_package(yaml-cpp REQUIRED)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 
                     ${CMAKE_CURRENT_SOURCE_DIR}/tracker_CLASS/c++/include 
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkDNN/include/tkDNN 
+                    ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include/tkCommon
                     ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include)
 include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${NVINFER_INCLUDES} ${CUDNN_INCLUDE_DIRS})
 
@@ -60,5 +61,5 @@ target_link_libraries(main class-edge)
 
 add_custom_command(TARGET class-edge
         POST_BUILD
-        COMMAND mv tkDNN/test_yolo3_berkeley .
+        COMMAND cp tkDNN/test_yolo3_berkeley .
         )
