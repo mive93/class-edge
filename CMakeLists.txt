@@ -22,7 +22,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPENCV")
 
 find_package(yaml-cpp REQUIRED)
 
-
 #-------------------------------------------------------------------------------
 # Build libraries
 #-------------------------------------------------------------------------------
@@ -40,26 +39,8 @@ set(class-edge-LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES
 add_library(class-edge SHARED ${calss-edge-SRC})
 target_link_libraries(class-edge ${class-edge-LIBS} )
 
-
-#-------------------------------------------------------------------------------
-# Submodules
-#-------------------------------------------------------------------------------
-
-execute_process(COMMAND git submodule update --recursive --init -- tkDNN
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_subdirectory(tkDNN)
-
 #-------------------------------------------------------------------------------
 # Build executables
 #-------------------------------------------------------------------------------
 add_executable(main src/main.cpp)
 target_link_libraries(main class-edge)
-
-#-------------------------------------------------------------------------------
-# Move the needed test from tkdnn in the build folder
-#-------------------------------------------------------------------------------
-
-add_custom_command(TARGET class-edge
-        POST_BUILD
-        COMMAND cp tkDNN/test_yolo3_berkeley .
-        )
