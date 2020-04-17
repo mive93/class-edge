@@ -30,3 +30,9 @@ git clone gitlab@git.hipert.unimore.it:mverucchi/class-edge.git
 cd class-edge
 bash scripts/configure.sh
 ```
+
+## How to encrypt a string
+
+```
+echo -n "yourAwesomeString" | openssl enc -e -aes-256-cbc -a -salt -iter 100000
+```

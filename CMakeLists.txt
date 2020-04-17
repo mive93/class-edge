@@ -23,6 +23,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPENCV")
 find_package(yaml-cpp REQUIRED)
 
 #-------------------------------------------------------------------------------
+# Submodules
+#-------------------------------------------------------------------------------
+
+add_subdirectory(tkDNN ${CMAKE_CURRENT_SOURCE_DIR}/tkDNN/build)
+#add_subdirectory(tkCommon)
+add_subdirectory(tracker_CLASS/c++)
+
+#-------------------------------------------------------------------------------
 # Build libraries
 #-------------------------------------------------------------------------------
 
@@ -34,9 +42,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include)
 include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${NVINFER_INCLUDES} ${CUDNN_INCLUDE_DIRS})
 
-file(GLOB calss-edge-SRC "src/*.cpp")
-set(class-edge-LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} yaml-cpp)
-add_library(class-edge SHARED ${calss-edge-SRC})
+file(GLOB class-edge-SRC "src/*.cpp")
+set(class-edge-LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} yaml-cpp tkDNN class-tracker)
+add_library(class-edge SHARED ${class-edge-SRC})
 target_link_libraries(class-edge ${class-edge-LIBS} )
 
 #-------------------------------------------------------------------------------
