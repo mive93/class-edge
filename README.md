@@ -23,6 +23,12 @@ sudo apt-get install -y libeigen3-dev \
                         libyaml-cpp-dev
 ```
 
+required for tkCommon
+```
+sudo apt-get install -y libgles2-mesa-dev libglew-dev libmatio-dev libpcap-dev
+bash scripts/install-glfw-3.3.sh
+```
+
 ## How to build the project
 
 ```
