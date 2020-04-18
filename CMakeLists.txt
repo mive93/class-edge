@@ -27,7 +27,7 @@ find_package(yaml-cpp REQUIRED)
 # Submodules
 #-------------------------------------------------------------------------------
 
-add_subdirectory(tkDNN ${CMAKE_CURRENT_SOURCE_DIR}/tkDNN/build)
+add_subdirectory(tkDNN)
 add_subdirectory(tkCommon)
 add_subdirectory(tracker_CLASS/c++)
 

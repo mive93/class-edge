@@ -34,7 +34,16 @@ bash scripts/install-glfw-3.3.sh
 ```
 git clone gitlab@git.hipert.unimore.it:mverucchi/class-edge.git
 cd class-edge
-bash scripts/configure.sh
+mkdir build
+cd build
+cmake ..
+make -j
+```
+
+## How to initialize or update submodule
+```
+git submodule update --init --recursive #initialize
+git submodule update --remote --recursive  #update all
 ```
 
 ## How to encrypt a string

@@ -22,19 +22,20 @@ std::string decryptString(std::string encrypted){
     return decrypted;
 }
 
-bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,std::string& net, char& type, int& n_classes){
+bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,std::string& net, char& type, int& n_classes, std::string& tif_map_path){
     std::string help =  "class-edge demo\nCommand:\n"
                         "-i\tparameters file\n"
                         "-n\tnetwork rt path\n"
                         "-t\ttype of network (only y|c|m admissed)\n"
-                        "-c\t number of classes for the network\n"
+                        "-c\tnumber of classes for the network\n"
+                        "-m\tmap.tif path (to get GPS position)\n"
                         "\tlist of camera ids (n ids expected)\n\n";
 
     //default values
     std::string params_path = "";
     
     //read arguments
-    for(int opt;(opt = getopt(argc, argv, ":i:h:n:c:t:")) != -1;)
+    for(int opt;(opt = getopt(argc, argv, ":i:m:n:c:t:h")) != -1;)
     {
         switch(opt)
         {
@@ -44,6 +45,10 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,st
             case 'i':
                 params_path = optarg;
                 std::cout<<"Input parameters file in use: "<<params_path<<std::endl;
+                break;
+            case 'm':
+                tif_map_path = optarg;
+                std::cout<<"tif map in use: "<<tif_map_path<<std::endl;
                 break;
             case 'c':
                 n_classes = atoi(optarg);
@@ -97,6 +102,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,st
         net     = config["net"].as<std::string>();
         type    = config["type"].as<char>();
         n_classes = config["classes"].as<int>();
+        tif_map_path = config["tif"].as<std::string>();
         
         YAML::Node cameras_yaml = config["cameras"];
         bool use_info;
@@ -133,6 +139,16 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,st
 }
 
 void initializeCamerasNetworks(std:: vector<edge::camera>& cameras, const std::string& net, const char type, int& n_classes){
+    //if the rt file does not esits, run the test to create it
+    if(!fileExist(net.c_str()))
+    {
+        std::string test_cmd = "tkDNN/test_" + net.substr(0, net.find("_fp"));
+        if(!fileExist(test_cmd.c_str()))
+            FatalError("Wrong network, the test does not exist for tkDNN");
+        system(test_cmd.c_str());        
+    }
+
+    //assign to each camera a detector
     for(auto &c: cameras){
         switch(type){
             case 'y':

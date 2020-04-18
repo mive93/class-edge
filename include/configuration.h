@@ -28,7 +28,7 @@ struct camera
 std::ostream& operator<<(std::ostream& os, const edge::camera& c);
 
 std::string decryptString(std::string encrypted);
-bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,std::string& net, char& type, int& n_classes);
+bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,std::string& net, char& type, int& n_classes, std::string& tif_map_path);
 void initializeCamerasNetworks(std:: vector<edge::camera>& cameras, const std::string& net, const char type, int& n_classes);
 
 #endif /*CONFIGURATION_H*/
