@@ -5,21 +5,31 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c){
     return os;
 }
 
-std::string decryptString(std::string encrypted){
+std::string executeCommandAndGetOutput(const char * command)
+{
     FILE *fpipe;
-    std::string command = "echo '"+ encrypted +"' | openssl enc -e -aes-256-cbc -a -d -salt -iter 100000";
     char c = 0;
 
-    if (0 == (fpipe = (FILE*)popen(command.c_str(), "r")))
+    if (0 == (fpipe = (FILE*)popen(command, "r")))
         FatalError("popen() failed.");
 
-    std::string decrypted; 
+    std::string output; 
     while (fread(&c, sizeof c, 1, fpipe))
-        decrypted.push_back(c);
-    std::cout<<decrypted<<std::endl;
+        output.push_back(c);
+    // std::cout<<output<<std::endl;
 
     pclose(fpipe);
-    return decrypted;
+    return output;
+}
+
+std::string decryptString(std::string encrypted, const std::string& password){
+    std::string command = "echo '"+ encrypted +"' | openssl enc -e -aes-256-cbc -a -d -salt -iter 100000 -pass pass:"+password;
+    return executeCommandAndGetOutput(command.c_str());
+}
+
+std::string encryptString(std::string to_encrypt, const std::string& password){
+    std::string command = "echo -n "+to_encrypt+" | openssl enc -e -aes-256-cbc -a -salt -iter 100000 -pass pass:"+password;
+    return executeCommandAndGetOutput(command.c_str());
 }
 
 bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,std::string& net, char& type, int& n_classes, std::string& tif_map_path){
@@ -97,6 +107,8 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,st
         cameras[0].show = false;
     }
     else{
+
+        std::string password=""; 
         //read from parameters file
         YAML::Node config   = YAML::LoadFile(params_path);
         net     = config["net"].as<std::string>();
@@ -121,7 +133,13 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,st
             cameras.resize(++n_cameras);
             cameras[n_cameras-1].id                 = camera_id;
             if (cameras_yaml[i]["encrypted"].as<int>())
-                cameras[n_cameras-1].input          = decryptString(cameras_yaml[i]["input"].as<std::string>());
+            {
+                if(password == "") {
+                    std::cout<<"Please insert the password to decript the cameras input"<<std::endl;
+                    std::cin>>password;
+                }
+                cameras[n_cameras-1].input          = decryptString(cameras_yaml[i]["input"].as<std::string>(), password);
+            }
             else            
                 cameras[n_cameras-1].input          = cameras_yaml[i]["input"].as<std::string>();
             cameras[n_cameras-1].pmatrixPath        = cameras_yaml[i]["pmatrix"].as<std::string>();

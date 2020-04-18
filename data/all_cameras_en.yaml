@@ -1,0 +1,110 @@
+net: !<!> yolo3_berkeley_fp32.rt
+cameras:
+  - maskfile: !<!> ../data/masks/20936_mask.jpg
+    cameraCalib: !<!> ../data/calib_cameras/20936.params
+    id: 2036
+    encrypted: 1
+    input: !<!> "U2FsdGVkX1+ftA8YRRwdLkB9PLi7C9j2FjAlX2Y4IhyS0o/HyOEr70/Bni4ojFqf\naD+mcyZcnJIcaOrun450p9SV+p+rp0QrsTjBNGrvsuA=\n"
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-20936_20p.txt
+    maskFileOrient: !<!> ../data/masks_orient/1920-1080_mask_null.jpg
+  - maskfile: !<!> ../data/masks/20937_mask.jpg
+    cameraCalib: !<!> ../data/calib_cameras/20937.params
+    encrypted: 1
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-20937_20p.txt
+    id: 2037
+    input: !<!> "U2FsdGVkX19NpjhOoBKOrW4CV3brP3DXfmdS7pP5ezvDfrkhMcysH77q7d4eHxhn\n68ikOak9LlkIZLKPqKcnFLkb1lLg7mqheKUkgQ2URQ8=\n"
+    maskFileOrient: !<!> ../data/masks_orient/1920-1080_mask_null.jpg
+  - input: !<!> "U2FsdGVkX18OigNpq9LphWPZAB9QZnGah4QWEOcZAyxmd7E0vniaitof0DyOyv9s\nuhnuxMU0b73gImwbv3nFy8ZCAPVOq5M4AtP/IguADpw=\n"
+    encrypted: 1
+    maskfile: !<!> ../data/masks/20939_mask.jpg
+    cameraCalib: !<!> ../data/calib_cameras/20939.params
+    id: 2039
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-20939_20p.txt
+    maskFileOrient: !<!> ../data/masks_orient/3072-1728_mask_null.jpg
+  - input: !<!> "U2FsdGVkX18OECkITeF/hIWCfcchgKEyqAJ4d996hzwyJm7vcsudyM/eLAyfj8S3\nycpuuYILEkiMaQ/5qRNY7ZwJa7EVZ7uQRiTDE3ijEnI=\n"
+    maskfile: !<!> ../data/masks/10218_mask.jpg
+    encrypted: 1
+    cameraCalib: !<!> ../data/calib_cameras/10218.params
+    id: 10218
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-10218_20p.txt
+    maskFileOrient: !<!> ../data/masks_orient/3072-1728_mask_null.jpg
+  - maskfile: !<!> ../data/masks/20940_mask.jpg
+    input: !<!> "U2FsdGVkX1/j6HTR+18FmAeUaMRX/X0KEASVpd8Xqe1jOycGxtzwXVLB0SnLJSXj\nCEYuduuOsqu/6nPwmRAPgR6QP6AgXkLwV05M18KhNsE=\n"
+    encrypted: 1
+    cameraCalib: !<!> ../data/calib_cameras/20940.params
+    id: 2040
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-20940_10p.txt
+    maskFileOrient: !<!> ../data/masks_orient/3072-1728_mask_null.jpg
+  - input: !<!> "U2FsdGVkX18laSPjUc/vjQPVz/wOSX1qtzcwN4//fBjtG1Wpf849yxanFesXVLlb\nspdsC8FX+ho7rDHIbxyHnQ==\n"
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-20932_10p.txt
+    id: 2032
+    maskfile: !<!> ../data/masks/20932_mask.jpg
+    cameraCalib: !<!> ../data/calib_cameras/20932.params
+    encrypted: 1
+    maskFileOrient: !<!> ../data/masks_orient/1920-1080_mask_null.jpg
+  - input: !<!> "U2FsdGVkX18L6pTcguAeSwU5SWzXWz8kgx2sdqBLXz6xEH7juGrY+sxtn83y4Zgi\ncSO/5ZWbKd82A1xbNUREJNyO9vKWMMauXwucJ0SMzfE=\n"
+    maskfile: !<!> ../data/masks/637_mask.jpg
+    encrypted: 1
+    cameraCalib: !<!> ../data/calib_cameras/637.params
+    id: 37
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-637_7p.txt
+    maskFileOrient: !<!> ../data/masks_orient/3072-1728_mask_null.jpg
+  - maskfile: !<!> ../data/masks/6310_mask.jpg
+    encrypted: 1
+    input: !<!> "U2FsdGVkX18Pb7xWG+w63mY/KLPXM7zktX8efsfQr9IzO6TV2MjxhBUxuPCvI8P6\nkxBhw8vKyQkuFoYgsKgwS2FFWIHwhAhyPibr6OW/bL8=\n"
+    cameraCalib: !<!> ../data/calib_cameras/6310.params
+    id: 310
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-6310_10p.txt
+    maskFileOrient: !<!> ../data/masks_orient/3072-1728_mask_null.jpg
+  - input: !<!> "U2FsdGVkX1/pZs1hkyBNY64G5S1v6sWFDDcAMXEhdKZd7nnWjU1SC0qsIpm/2cPt\nObTTbLvSgthKxIYeAJ8L+zaOGy8/+jS8z9TdotmdX3Y=\n"
+    maskfile: !<!> ../data/masks/634_mask.jpg
+    encrypted: 1
+    cameraCalib: !<!> ../data/calib_cameras/634.params
+    id: 34
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-634_10p.txt
+    maskFileOrient: !<!> ../data/masks_orient/3072-1728_mask_null.jpg
+  - maskfile: !<!> ../data/masks/6314_mask.jpg
+    encrypted: 1
+    id: 314
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-6314_10p.txt
+    input: !<!> "U2FsdGVkX18F2qK68tVzETIwiLooJQ9jTg8Xw3iz7Iz3cQKrf2TB8Y3GXF772kKa\nza/mdvnF3DstVeVnoJXwiWB2u0rUR0jy35rAr332dofULDXzdM1LJ0crlUjMRvlf\n"
+    cameraCalib: !<!> ../data/calib_cameras/6314.params
+    maskFileOrient: !<!> ../data/masks_orient/960-720_mask_null.jpg
+  - input: !<!> "U2FsdGVkX1/9OtWZNP4cYpzTTmhDkLzIA+Y8wNi+bKo//inBB5FUTxE8QLGU4kjX\n7Jz94Knm07sFie2bKyPV9gJ5tehPx6HKIEHv7kZMMbZXL93UeitPICZKGQklXeXk\n"
+    cameraCalib: !<!> ../data/calib_cameras/6313.params
+    maskfile: !<!> ../data/masks/6313_mask.jpg
+    encrypted: 1
+    id: 313
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-6313_10p.txt
+    maskFileOrient: !<!> ../data/masks_orient/960-720_mask_null.jpg
+  - maskfile: !<!> ../data/masks/6312_mask.jpg
+    cameraCalib: !<!> ../data/calib_cameras/6312.params
+    input: !<!> "U2FsdGVkX19dygE1jEgSMCOcIeexDqrdFo0p8uv0xqW6gRnvUlNwO3nZ+fqIkRr9\nR6CYEi43ctvwQqii0OAhwh+tcngrV1Qa/ZA7qozuDSVQPtBxeCpTLO+BfXYZcqsq\n"
+    encrypted: 1
+    id: 312
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-6312_10p.txt
+    maskFileOrient: !<!> ../data/masks_orient/960-720_mask_null.jpg
+  - maskfile: !<!> ../data/masks/6311_mask.jpg
+    cameraCalib: !<!> ../data/calib_cameras/6311.params
+    input: !<!> "U2FsdGVkX18zx4acXwo0SoASJD09QqUGpJE8fJqbdM6ySeTWKHqG7l1CVzr++uLm\nzxjhvo73o/165O6dfm734KMg/Q0+rc79a5MMFPEMWQnty/RR2xE+dR232/xkor0b\n"
+    encrypted: 1
+    id: 311
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-6311_10p.txt
+    maskFileOrient: !<!> ../data/masks_orient/960-720_mask_null.jpg
+  - input: !<!> "U2FsdGVkX1/32HEUHKovRr0be3aM/q/ONdULbMoPOtg7VlcM/qcjqiiDrfj3/v8T\nr7l4CAr9cRYcfGWG+KMN07SH9tO3xMfdkGNwqyDdRRE=\n"
+    encrypted: 1
+    id: 36
+    maskfile: !<!> ../data/masks/636_mask.jpg
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-636_10p.txt
+    cameraCalib: !<!> ../data/calib_cameras/632.params
+    maskFileOrient: !<!> ../data/masks_orient/3072-1728_mask_null.jpg
+  - cameraCalib: !<!> ../data/calib_cameras/6315.params
+    input: !<!> "U2FsdGVkX1+Wd5k1mZNUMX4nUus8df7bEdNFvLl46ogJSFvoQ3Y7156Mml6n/ZAH\n4TygAkLFkABcQI4sUhzlIGg1GHarljsoxjAe088WDWU=\n"
+    encrypted: 1
+    maskfile: !<!> ../data/masks/6315_mask.jpg
+    id: 315
+    pmatrix: !<!> ../data/pmat_new/pmat_07-03-6315_10p.txt
+    maskFileOrient: !<!> ../data/masks_orient/3840-2160_mask_null.jpg
+classes: 80
+type: !<!> y
+tif: !<!> ../data/masa_map.tif

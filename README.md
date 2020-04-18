@@ -46,8 +46,17 @@ git submodule update --init --recursive #initialize
 git submodule update --remote --recursive  #update all
 ```
 
-## How to encrypt a string
+## How to encrypt 
 
+This is how you encrypt a string:
 ```
 echo -n "yourAwesomeString" | openssl enc -e -aes-256-cbc -a -salt -iter 100000
 ```
+In you want to encrypt the input of a parameters file, be sure that the field ```encrypted``` is set to 0.
+Then just run 
+```
+./encrypt <params-no-enc> <params-enc>
+```
+where
+  * ```<params-no-enc>``` is the input parametrs file (yaml)
+  * ```<params-enc>``` is the output parametrs file (yaml) with all the input encrypted with the password the program will ask for.

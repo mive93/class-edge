@@ -53,5 +53,8 @@ target_link_libraries(class-edge ${class-edge-LIBS} )
 #-------------------------------------------------------------------------------
 # Build executables
 #-------------------------------------------------------------------------------
-add_executable(edge src/main.cpp)
+add_executable(edge demo/main.cpp)
 target_link_libraries(edge class-edge)
+
+add_executable(encrypt demo/encrypt_params.cpp)
+target_link_libraries(encrypt class-edge)
