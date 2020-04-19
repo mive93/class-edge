@@ -1,2 +1,5 @@
 build/
 .vscode/
+data/*mp4
+data/all_camera.yaml
+data/*tif
