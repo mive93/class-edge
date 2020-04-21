@@ -14,16 +14,34 @@ void sig_handler(int signo) {
     gRun = false;
 }
 
+void pixel2coord(const int x, const int y, double &lat, double &lon)
+{
+    //conversion from pixels to GPS, via georeferenced map parameters
+    double xoff, a, b, yoff, d, e;
+    xoff    = adfGeoTransform[0];
+    a       = adfGeoTransform[1];
+    b       = adfGeoTransform[2];
+    yoff    = adfGeoTransform[3];
+    d       = adfGeoTransform[4];
+    e       = adfGeoTransform[5];
+
+    lon     = a * x + b * y + xoff;
+    lat     = d * x + e * y + yoff;
+}
+void coord2pixel(double lat, double lon, int &x, int &y)
+{
+    //conversion from GPS to pixels, via georeferenced map parameters
+    x = int(round( (lon - adfGeoTransform[0]) / adfGeoTransform[1]) );
+    y = int(round( (lat - adfGeoTransform[3]) / adfGeoTransform[5]) );
+}
+
 int main(int argc, char **argv)
 {
     tk::exceptions::handleSegfault();
-    std::vector<edge::camera> cameras;
-    std::string net, tif_map_path;
-    char type;
-    int n_classes;
-    readParameters(argc, argv, cameras, net, type, n_classes, tif_map_path);
-    initializeCamerasNetworks(cameras, net, type, n_classes);
+    signal(SIGINT, sig_handler);    
 
+    std::vector<edge::camera> cameras = configure(argc, argv);
+    
     pthread_t threads[MAX_CAMERAS];
     int iret[MAX_CAMERAS];
     for(size_t i=0; i<cameras.size(); ++i)
@@ -41,6 +59,8 @@ int main(int argc, char **argv)
 
     for(size_t i=0; i<cameras.size(); ++i)
         printf("Thread %d returns: %d\n", i,iret[i]); 
+
+    free(adfGeoTransform);
     
     return EXIT_SUCCESS;
 }

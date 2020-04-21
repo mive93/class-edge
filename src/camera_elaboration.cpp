@@ -1,6 +1,10 @@
 #include "camera_elaboration.h"
 
 
+
+
+
+
 void *elaborateSingleCamera(void *ptr)
 {
     edge::camera* cam = (edge::camera*) ptr;
@@ -17,8 +21,13 @@ void *elaborateSingleCamera(void *ptr)
         fprintf(stderr, "Error creating thread\n");
         return (void *)1;
     }
+
+    
+    
+
     cv::Mat dnn_input;
     cv::Mat frame;
+    std::vector<tk::dnn::box> detected;
     while(gRun){
         if(data.frame.data) {
             data.mtxF.lock();
@@ -27,7 +36,7 @@ void *elaborateSingleCamera(void *ptr)
             dnn_input = frame.clone();    
             //inference
             cam->detNN->update(dnn_input);
-            std::vector<tk::dnn::box> detected = cam->detNN->detected;
+            detected= cam->detNN->detected;
             if(cam->show)
                 viewer->setFrameAndDetection(frame, detected);
         }
