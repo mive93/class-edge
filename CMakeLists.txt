@@ -40,8 +40,8 @@ add_subdirectory(tracker_CLASS/c++)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 
                     ${CMAKE_CURRENT_SOURCE_DIR}/tracker_CLASS/c++/include 
-                    ${CMAKE_CURRENT_SOURCE_DIR}/tkDNN/include/tkDNN 
-                    ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include/tkCommon
+                    ${CMAKE_CURRENT_SOURCE_DIR}/tkDNN/include
+                    ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include)
 include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${NVINFER_INCLUDES} ${CUDNN_INCLUDE_DIRS})
 

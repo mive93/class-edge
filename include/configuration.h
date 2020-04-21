@@ -2,30 +2,15 @@
 #define CONFIGURATION_H
 
 #include <iostream>
-#include "utils.h"
-#include "CenternetDetection.h"
-#include "MobilenetDetection.h"
-#include "Yolo3Detection.h"
+#include "tkDNN/utils.h"
+#include "tkDNN/CenternetDetection.h"
+#include "tkDNN/MobilenetDetection.h"
+#include "tkDNN/Yolo3Detection.h"
 #include <yaml-cpp/yaml.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-namespace edge {
-struct camera
-{
-    double adfGeoTransform[6];
-    std::string input;
-    std::string pmatrixPath;
-    std::string maskfilePath;
-    std::string cameraCalibPath;
-    std::string maskFileOrientPath;
-    tk::dnn::DetectionNN *detNN;  
-    int id = 0;
-    bool show = false;
-};
-}
-std::ostream& operator<<(std::ostream& os, const edge::camera& c);
+#include "data.h"
 
 std::string executeCommandAndGetOutput(const char * command);
 std::string decryptString(std::string encrypted, const std::string& password);

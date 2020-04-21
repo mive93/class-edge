@@ -1,12 +1,7 @@
 #include "configuration.h"
 
-std::ostream& operator<<(std::ostream& os, const edge::camera& c){
-    os << c.id << '\t' << c.input << '\t' << c.pmatrixPath<< '\t' << c.cameraCalibPath;
-    return os;
-}
 
-std::string executeCommandAndGetOutput(const char * command)
-{
+std::string executeCommandAndGetOutput(const char * command){
     FILE *fpipe;
     char c = 0;
 
@@ -32,8 +27,7 @@ std::string encryptString(std::string to_encrypt, const std::string& password){
     return executeCommandAndGetOutput(command.c_str());
 }
 
-void readParamsFromYaml(const std::string& params_path, const std::vector<int>& cameras_ids,std::vector<edge::camera>& cameras,std::string& net, char& type, int& n_classes, std::string& tif_map_path)
-{
+void readParamsFromYaml(const std::string& params_path, const std::vector<int>& cameras_ids,std::vector<edge::camera>& cameras,std::string& net, char& type, int& n_classes, std::string& tif_map_path){
     std::string password = ""; 
     YAML::Node config   = YAML::LoadFile(params_path);
     net          = config["net"].as<std::string>();
@@ -44,8 +38,7 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
     YAML::Node cameras_yaml = config["cameras"];
     bool use_info;
     int n_cameras = 0;
-    for(int i=0; i<cameras_yaml.size(); i++)
-    {
+    for(int i=0; i<cameras_yaml.size(); i++){
         int camera_id = cameras_yaml[i]["id"].as<int>();
 
         //save infos only of the cameras whose ids where passed as args
@@ -57,8 +50,7 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
 
         cameras.resize(++n_cameras);
         cameras[n_cameras-1].id                 = camera_id;
-        if (cameras_yaml[i]["encrypted"].as<int>())
-        {
+        if (cameras_yaml[i]["encrypted"].as<int>()){
             if(password == "") {
                 std::cout<<"Please insert the password to decript the cameras input"<<std::endl;
                 std::cin>>password;
@@ -98,10 +90,8 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,st
     int read_n_classes              = 0;
     
     //read arguments
-    for(int opt;(opt = getopt(argc, argv, ":i:m:n:c:t:h")) != -1;)
-    {
-        switch(opt)
-        {
+    for(int opt;(opt = getopt(argc, argv, ":i:m:n:c:t:h")) != -1;){
+        switch(opt){
             case 'h':
                 std::cout<<help<<std::endl;
                 return false;
@@ -151,7 +141,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,st
         cameras[0].maskfilePath         = "../data/masks/20936_mask.jpg";
         cameras[0].cameraCalibPath      = "../data/calib_cameras/20936.params";
         cameras[0].maskFileOrientPath   = "../data/masks_orient/1920-1080_mask_null.jpg";
-        cameras[0].show                 = false;
+        cameras[0].show                 = true;
     }
     else 
         readParamsFromYaml(params_path, cameras_ids, cameras, net, type, n_classes, tif_map_path);
@@ -173,8 +163,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera>& cameras,st
 
 void initializeCamerasNetworks(std:: vector<edge::camera>& cameras, const std::string& net, const char type, int& n_classes){
     //if the rt file does not esits, run the test to create it
-    if(!fileExist(net.c_str()))
-    {
+    if(!fileExist(net.c_str())){
         std::string test_cmd = "tkDNN/test_" + net.substr(0, net.find("_fp"));
         if(!fileExist(test_cmd.c_str()))
             FatalError("Wrong network, the test does not exist for tkDNN");
