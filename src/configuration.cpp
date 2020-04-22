@@ -263,21 +263,15 @@ std::vector<edge::camera> configure(int argc, char **argv)
     for(auto cp: cameras_par)
         std::cout<<cp;
 
-    //read tif image to get georeference parameters
-    adfGeoTransform = (double *)malloc(6 * sizeof(double));
-    readTiff(tif_map_path, adfGeoTransform);
-    for(int i=0; i<6; i++)
-        std::cout<<adfGeoTransform[i]<<" ";
-    std::cout<<std::endl;
-
     //read calibration matrixes for each camera
     std::vector<edge::camera> cameras(cameras_par.size());
     for(size_t i=0; i<cameras.size(); ++i){
-        cameras[i].id    = cameras_par[i].id;
-        cameras[i].input = cameras_par[i].input;
-        cameras[i].show  = cameras_par[i].show;
         readCalibrationMatrix(cameras_par[i].cameraCalibPath, cameras[i].calibMat, cameras[i].distCoeff);
         readProjectionMatrix(cameras_par[i].pmatrixPath, cameras[i].prjMat);
+        cameras[i].id           = cameras_par[i].id;
+        cameras[i].input        = cameras_par[i].input;
+        cameras[i].show         = cameras_par[i].show;
+        cameras[i].invPrjMat    = cameras[i].prjMat.inv();
     }
 
     //initialize neural netwokr for each camera
@@ -285,6 +279,16 @@ std::vector<edge::camera> configure(int argc, char **argv)
 
     for(auto c: cameras)
         std::cout<<c;
+
+    //read tif image to get georeference parameters
+    adfGeoTransform = (double *)malloc(6 * sizeof(double));
+    readTiff(tif_map_path, adfGeoTransform);
+    for(int i=0; i<6; i++)
+        std::cout<<adfGeoTransform[i]<<" ";
+    std::cout<<std::endl;
+
+    //initialize the geodetic converter with a point in the MASA
+    geoConv.initialiseReference(44.655540, 10.934315, 0);
 
     return cameras;
 }

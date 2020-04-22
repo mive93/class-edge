@@ -25,6 +25,7 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c){
     os<< "distCoeff \t\t" << c.distCoeff <<std::endl;
     os<< "calibMat: \n" << c.calibMat <<std::endl;
     os<< "prjMat: \n" << c.prjMat <<std::endl;
+    os<< "invPrjMat: \n" << c.invPrjMat <<std::endl;
     os<<"----------------------------------------------------\n";
 
 }
@@ -32,3 +33,4 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c){
 EdgeViewer *viewer = nullptr;
 bool gRun = true;
 double *adfGeoTransform = nullptr;
+tk::common::GeodeticConverter geoConv;
