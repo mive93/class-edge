@@ -109,11 +109,11 @@ void *elaborateSingleCamera(void *ptr)
             frame_nbr++;
 
             // undistort
-            if (first_iteration){
-                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, frame.size(), CV_16SC2, map1, map2);
-                first_iteration = false;
-            }
-            cv::remap(frame, frame, map1, map2, 1);
+            // if (first_iteration){
+            //     cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, frame.size(), CV_32FC1, map1, map2);
+            //     first_iteration = false;
+            // }
+            // cv::remap(frame, frame, map1, map2, cv::INTER_CUBIC);
 
             
 
