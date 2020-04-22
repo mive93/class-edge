@@ -59,7 +59,7 @@ class EdgeViewer : public tk::gui::Viewer {
                 mtxNewFrame.unlock();
             }
             //set 2D view
-            tkViewport2D(frame_width, frame_height);
+            tkViewport2D(width, height);
 
             //draw frame
             glPushMatrix(); {
