@@ -1,5 +1,8 @@
 #include "camera_elaboration.h"
 
+#include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
+
 
 
 std::ostream& operator<<(std::ostream& os, const edge::gps_obj& o){
@@ -68,7 +71,7 @@ void *elaborateSingleCamera(void *ptr)
     //initiate the tracker
     float   dt              = 0.03;
     int     n_states        = 5;
-    int     initial_age     = 15;
+    int     initial_age     = 8;
     int     age_threshold   = 0;
     bool    tr_verbose      = false;
     Tracking t(n_states, dt, initial_age, age_threshold);
@@ -76,6 +79,7 @@ void *elaborateSingleCamera(void *ptr)
 
     cv::Mat dnn_input;
     cv::Mat frame;
+    cv::Mat map1, map2;
 
     std::vector<cv::Point2f> map_pixels;
     std::vector<cv::Point2f> camera_pixels;
@@ -91,7 +95,9 @@ void *elaborateSingleCamera(void *ptr)
     double latitude, longitude, altitude;
     int map_pix_x, map_pix_y; 
     int frame_nbr = 0; //FIXME
+    
     bool verbose = false;
+    bool first_iteration = true;
 
 
     while(gRun){
@@ -101,11 +107,18 @@ void *elaborateSingleCamera(void *ptr)
             data.mtxF.unlock();
             
             frame_nbr++;
-            dnn_input = frame.clone();  
 
-            //TODO undistort
+            // undistort
+            if (first_iteration){
+                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, frame.size(), CV_16SC2, map1, map2);
+                first_iteration = false;
+            }
+            cv::remap(frame, frame, map1, map2, 1);
+
+            
 
             //inference
+            dnn_input = frame.clone();  
             cam->detNN->update(dnn_input);
             detected= cam->detNN->detected;
             

@@ -8,6 +8,8 @@
 #include"video_capture.h"
 #include "Tracking.h"
 
+
+
 namespace edge { 
     struct gps_obj
     {
