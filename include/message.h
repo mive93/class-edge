@@ -1,6 +1,9 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+#include <iostream>
+#include <iomanip>
+
 #include "communicator.hpp"
 #include "objects.hpp"
 #include "messages.hpp"

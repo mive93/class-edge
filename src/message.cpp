@@ -39,6 +39,18 @@ Categories classToCategory(const int cl)
     return cat;
 }
 
+std::ostream& operator<<(std::ostream& os, const RoadUser& o){
+    os<<std::setprecision(20);
+    os<<"----------------------------------------------------\n";
+    os<< "latitude\t"       << o.latitude           << std::endl;
+    os<< "longitude\t"      << o.longitude          << std::endl;
+    os<< "speed\t\t"        << int(o.speed)         << std::endl;
+    os<< "orientation\t"    << int(o.orientation)   << std::endl;
+    os<< "category\t"       << o.category           << std::endl;
+    os<<"----------------------------------------------------\n";
+    return os;
+}
+
 RoadUser getRoadUser(const double latitude, const double longitude, const float velocity, const float orientation, const int cl )
 {
     RoadUser r;

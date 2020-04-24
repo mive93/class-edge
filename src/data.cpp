@@ -29,7 +29,7 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c){
     os<< "prjMat: \n" << c.prjMat <<std::endl;
     os<< "invPrjMat: \n" << c.invPrjMat <<std::endl;
     os<<"----------------------------------------------------\n";
-
+    return os;
 }
 
 EdgeViewer *viewer = nullptr;
