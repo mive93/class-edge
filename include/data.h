@@ -30,8 +30,10 @@ struct camera{
     cv::Mat                 calibMat;
     cv::Mat                 distCoeff;
     std::string             input = "";
+    std::string             ipCommunicator = "127.0.0.1";
     tk::dnn::DetectionNN*   detNN = nullptr;  
     int                     id = 0;
+    int                     portCommunicator = 8888;
     bool                    show = false;
 };
 }

@@ -20,6 +20,8 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c){
     os<<"----------------------------------------------------\n";
     os<< "id \t\t\t" << c.id <<std::endl;
     os<< "input \t\t\t" << c.input<<std::endl;
+    os<< "ipCommunicator \t\t" << c.ipCommunicator<<std::endl;
+    os<< "portCommunicator \t" << c.portCommunicator<<std::endl;
     os<< "detNN \t\t\t" << c.detNN<<std::endl;
     os<< "show \t\t\t" << (int)c.show <<std::endl;
     os<< "distCoeff \t\t" << c.distCoeff <<std::endl;

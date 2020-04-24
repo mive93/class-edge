@@ -22,7 +22,7 @@ void *readVideoCapture( void *ptr )
             continue;
         } 
         data->mtxF.lock();
-        data->frame = frame;
+        data->frame = frame.clone();
         data->mtxF.unlock();
     }
     return (void *)0;

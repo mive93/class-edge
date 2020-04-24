@@ -3,8 +3,6 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 
-
-
 std::ostream& operator<<(std::ostream& os, const edge::gps_obj& o){
     os<<std::setprecision(20)<<"LAT:\t"<<o.lat<<"\tLON:\t"<<o.lon<<"\tClass:\t"<<o.cl<<std::endl;
     return os;
@@ -56,29 +54,31 @@ void *elaborateSingleCamera(void *ptr)
     video_cap_data data;
     data.input = (char*)cam->input.c_str();
 
-    if(cam->show){
-        viewer->setClassesNames(cam->detNN->classesNames);
-        viewer->setColors(cam->detNN->classes);
-    }
+    if(cam->show)
+        viewer->bindCamera(cam->id);
     
     if (pthread_create(&video_cap, NULL, readVideoCapture, (void *)&data)){
         fprintf(stderr, "Error creating thread\n");
         return (void *)1;
     }
     
-    //TODO instantiate the socket
+    //instantiate the communicator and the socket
+    Communicator<MasaMessage> communicator;
+    communicator.open_client_socket((char*)cam->ipCommunicator.c_str(), cam->portCommunicator);
+    int socket = communicator.get_socket();
+    MasaMessage message;
 
     //initiate the tracker
     float   dt              = 0.03;
     int     n_states        = 5;
-    int     initial_age     = 8;
+    int     initial_age     = 5;
     int     age_threshold   = 0;
     bool    tr_verbose      = false;
     Tracking t(n_states, dt, initial_age, age_threshold);
     
 
     cv::Mat dnn_input;
-    cv::Mat frame;
+    cv::Mat frame, distort;
     cv::Mat map1, map2;
 
     std::vector<cv::Point2f> map_pixels;
@@ -89,33 +89,28 @@ void *elaborateSingleCamera(void *ptr)
     std::vector<Data>           cur_frame;
     std::vector<tracker_line>  lines;
 
-    
-    
     double north, east, up;
     double latitude, longitude, altitude;
     int map_pix_x, map_pix_y; 
-    int frame_nbr = 0; //FIXME
     
     bool verbose = false;
     bool first_iteration = true;
 
-
     while(gRun){
         if(data.frame.data) {
+
+            //copy the frame that the last frame read by the video capture thread
             data.mtxF.lock();
-            frame = data.frame;
+            distort = data.frame.clone();
             data.mtxF.unlock();
             
-            frame_nbr++;
-
-            // undistort
-            // if (first_iteration){
-            //     cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, frame.size(), CV_32FC1, map1, map2);
-            //     first_iteration = false;
-            // }
-            // cv::remap(frame, frame, map1, map2, cv::INTER_CUBIC);
-
-            
+            // undistort 
+            if (first_iteration){
+                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, distort.size(), CV_16SC2, map1, map2);
+                first_iteration = false;
+            }
+            frame = distort.clone();
+            cv::remap(distort, frame, map1, map2, cv::INTER_CUBIC);
 
             //inference
             dnn_input = frame.clone();  
@@ -138,7 +133,7 @@ void *elaborateSingleCamera(void *ptr)
             for(int i=0; i<gps_objects.size(); ++i){
                 //conversion from GPS to meters (needed for the tracker)
                 geoConv.geodetic2Enu(gps_objects[i].lat, gps_objects[i].lon, 0, &north, &east, &up);
-                cur_frame[i].frame_     = frame_nbr;
+                cur_frame[i].frame_     = 0;
                 cur_frame[i].class_     = gps_objects[i].cl;
                 cur_frame[i].x_         = north;
                 cur_frame[i].y_         = east;
@@ -153,37 +148,53 @@ void *elaborateSingleCamera(void *ptr)
             for(auto tr: t.trackers_){
                 if(tr.pred_list_.size()){
                     tracker_line line;
-                    line.color = tk::gui::Color_t {tr.r_, tr.g_, tr.b_, 255};
 
                     map_pixels.clear();
                     camera_pixels.clear();
-                    for(auto traj: tr.pred_list_){
+                    for(int i=0; i < tr.pred_list_.size(); ++i){
                         //convert from meters to GPS
-                        geoConv.enu2Geodetic(traj.x_, traj.y_, 0, &latitude, &longitude, &altitude);
+                        geoConv.enu2Geodetic(tr.pred_list_[i].x_, tr.pred_list_[i].y_, 0, &latitude, &longitude, &altitude);
                         //convert from GPS to map pixels
                         GPS2pixel(latitude, longitude, map_pix_x, map_pix_y);
                         map_pixels.push_back(cv::Point2f(map_pix_x, map_pix_y));
+
+                        //add RoadUser to the message
+                        if(i == tr.pred_list_.size() - 1 )
+                            message.objects.push_back(getRoadUser(latitude, longitude, tr.pred_list_[i].vel_, tr.pred_list_[i].yaw_, tr.class_));
                     }
 
-                    //transform map pixels to camers pixels
-                    cv::perspectiveTransform(map_pixels, camera_pixels, cam->invPrjMat);
-                    
-                    //convert into viewer coordinates
-                    for(auto cp: camera_pixels)
-                    {
-                        if(verbose)
-                            std::cout<<"x:\t"<<cp.x<<"\t y:\t"<<cp.y<<std::endl;
-                        line.points.push_back(viewer->convertPosition(cp.x, cp.y, -0.004));
+                    if(cam->show){
+                        //transform map pixels to camers pixels
+                        cv::perspectiveTransform(map_pixels, camera_pixels, cam->invPrjMat);
+                        
+                        //convert into viewer coordinates
+                        for(auto cp: camera_pixels)
+                        {
+                            if(verbose)
+                                std::cout<<"x:\t"<<cp.x<<"\t y:\t"<<cp.y<<std::endl;
+                            line.points.push_back(viewer->convertPosition(cp.x, cp.y, -0.004, cam->id));
+                        }
+                        line.color = tk::gui::Color_t {tr.r_, tr.g_, tr.b_, 255};
+                        lines.push_back(line);
                     }
-
-                    lines.push_back(line);
                 }
             }
 
+            //feed the viewer
             if(cam->show)
-                viewer->setFrameData(frame, detected, lines);
+                viewer->setFrameData(frame, detected, lines, cam->id);
 
-            //TODO send the messages
+
+            //prepare the message
+            message.t_stamp_ms = getTimeMs();
+            message.num_objects = message.objects.size();
+
+            //send the data if there are any
+            if (!message.objects.empty()){
+                communicator.send_message(&message, cam->portCommunicator);
+                std::cout<<"message sent!"<<std::endl;
+            }
+            message.objects.clear();
 
         }
     }

@@ -5,8 +5,11 @@
 #include <vector> 
 #include <fstream>
 #include <iostream>
-#include"video_capture.h"
+
 #include "Tracking.h"
+
+#include"video_capture.h"
+#include"message.h"
 
 
 

@@ -63,7 +63,7 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
         cameras_par[n_cameras-1].maskfilePath       = cameras_yaml[i]["maskfile"].as<std::string>();
         cameras_par[n_cameras-1].cameraCalibPath    = cameras_yaml[i]["cameraCalib"].as<std::string>();
         cameras_par[n_cameras-1].maskFileOrientPath = cameras_yaml[i]["maskFileOrient"].as<std::string>();
-        cameras_par[n_cameras-1].show               = false;
+        cameras_par[n_cameras-1].show               = true;
     }
 }
 

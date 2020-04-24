@@ -20,17 +20,19 @@ int main(int argc, char **argv)
     signal(SIGINT, sig_handler);    
 
     std::vector<edge::camera> cameras = configure(argc, argv);
-    
+
+    //TODO allow to switch on and off viewer with signals
+    viewer = new EdgeViewer(cameras.size());
+    viewer->setWindowName("Cameras");
+    viewer->setBackground(tk::gui::color::DARK_GRAY);
+    viewer->setClassesNames(cameras[0].detNN->classesNames);
+    viewer->setColors(cameras[0].detNN->classes);
+    viewer->initOnThread();    
+
     pthread_t threads[MAX_CAMERAS];
     int iret[MAX_CAMERAS];
     for(size_t i=0; i<cameras.size(); ++i)
         iret[i] = pthread_create( &threads[i], NULL, elaborateSingleCamera, (void*) &cameras[i]);
-
-    //TODO allow to switch on and off viewer with signals
-    viewer = new EdgeViewer();
-    viewer->setWindowName("Cameras");
-    viewer->setBackground(tk::gui::color::DARK_GRAY);
-    viewer->initOnThread();
 
     viewer->joinThread();
 
