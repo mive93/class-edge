@@ -132,7 +132,8 @@ void *elaborateSingleCamera(void *ptr)
     
 
     cv::Mat dnn_input;
-    cv::Mat frame, distort;
+    cv::Mat distort;
+    cv::Mat map1, map2;
 
     std::vector<tk::dnn::box>       detected;
     std::vector<tracking::obj_m>    cur_frame;
@@ -146,16 +147,16 @@ void *elaborateSingleCamera(void *ptr)
 
             //copy the frame that the last frame read by the video capture thread
             data.mtxF.lock();
-            frame = data.frame.clone();
+            distort = data.frame.clone();
             data.mtxF.unlock();
             
             // undistort 
-            // if (first_iteration){
-            //     cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, distort.size(), CV_16SC2, map1, map2);
-            //     first_iteration = false;
-            // }
-            // frame = distort.clone();
-            // cv::remap(distort, frame, map1, map2, cv::INTER_CUBIC);
+            if (first_iteration){
+                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, distort.size(), CV_16SC2, map1, map2);
+                first_iteration = false;
+            }
+            cv::Mat frame;
+            cv::remap(distort, frame, map1, map2, cv::INTER_CUBIC);
 
             //inference
             dnn_input = frame.clone();  
