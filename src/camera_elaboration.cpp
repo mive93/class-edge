@@ -41,7 +41,7 @@ void convertCameraPixelsToMapMeters(const int x, const int y, const int cl, cons
     geoConv.geodetic2Enu(latitude, longitude, 0, &north, &east, &up);    
 }
 
-std::vector<tracker_line> getTrackingLines(const Tracking& t, const cv::Mat& inv_prj_mat, const int cam_id, bool verbose){
+std::vector<tracker_line> getTrackingLines(const tracking::Tracking& t, const cv::Mat& inv_prj_mat, const int cam_id, bool verbose){
     std::vector<tracker_line>  lines;
     std::vector<cv::Point2f> map_pixels;
     std::vector<cv::Point2f> camera_pixels;
@@ -50,15 +50,15 @@ std::vector<tracker_line> getTrackingLines(const Tracking& t, const cv::Mat& inv
     double latitude, longitude, altitude;
     int map_pix_x, map_pix_y; 
 
-    for(auto tr: t.trackers_){
-        if(tr.pred_list_.size()){
+    for(auto tr: t.trackers){
+        if(tr.predList.size()){
             tracker_line line;
 
             map_pixels.clear();
             camera_pixels.clear();
-            for(int i=0; i < tr.pred_list_.size(); ++i){
+            for(int i=0; i < tr.predList.size(); ++i){
                 //convert from meters to GPS
-                geoConv.enu2Geodetic(tr.pred_list_[i].x_, tr.pred_list_[i].y_, 0, &latitude, &longitude, &altitude);
+                geoConv.enu2Geodetic(tr.predList[i].x, tr.predList[i].y, 0, &latitude, &longitude, &altitude);
                 //convert from GPS to map pixels
                 GPS2pixel(latitude, longitude, map_pix_x, map_pix_y);
                 map_pixels.push_back(cv::Point2f(map_pix_x, map_pix_y));
@@ -74,25 +74,25 @@ std::vector<tracker_line> getTrackingLines(const Tracking& t, const cv::Mat& inv
                     std::cout<<"x:\t"<<cp.x<<"\t y:\t"<<cp.y<<std::endl;
                 line.points.push_back(viewer->convertPosition(cp.x, cp.y, -0.004, cam_id));
             }
-            line.color = tk::gui::Color_t {tr.r_, tr.g_, tr.b_, 255};
+            line.color = tk::gui::Color_t {tr.r, tr.g, tr.b, 255};
             lines.push_back(line);
         }
     }
     return lines;
 }
 
-void prepareMessage(const Tracking& t, MasaMessage& message)
+void prepareMessage(const tracking::Tracking& t, MasaMessage& message)
 {
     message.objects.clear();
     double latitude, longitude, altitude;
     int i = 0;
-    for(auto tr: t.trackers_){
-        if(tr.pred_list_.size()){
+    for(auto tr: t.trackers){
+        if(tr.predList.size()){
             //convert from meters to GPS
-            i = tr.pred_list_.size() -1;
-            geoConv.enu2Geodetic(tr.pred_list_[i].x_, tr.pred_list_[i].y_, 0, &latitude, &longitude, &altitude);
+            i = tr.predList.size() -1;
+            geoConv.enu2Geodetic(tr.predList[i].x, tr.predList[i].y, 0, &latitude, &longitude, &altitude);
             //add RoadUser to the message
-            message.objects.push_back(getRoadUser(latitude, longitude, tr.pred_list_[i].vel_, tr.pred_list_[i].yaw_, tr.class_));
+            message.objects.push_back(getRoadUser(latitude, longitude, tr.predList[i].vel, tr.predList[i].yaw, tr.cl));
         }
     }
 
@@ -127,16 +127,15 @@ void *elaborateSingleCamera(void *ptr)
     float   dt              = 0.03;
     int     n_states        = 5;
     int     initial_age     = 5;
-    int     age_threshold   = 0;
     bool    tr_verbose      = false;
-    Tracking t(n_states, dt, initial_age, age_threshold);
+    tracking::Tracking t(n_states, dt, initial_age);
     
 
     cv::Mat dnn_input;
     cv::Mat frame, distort;
 
-    std::vector<tk::dnn::box>   detected;
-    std::vector<Data>           cur_frame;
+    std::vector<tk::dnn::box>       detected;
+    std::vector<tracking::obj_m>    cur_frame;
 
     double north, east;
     bool verbose = false;
@@ -168,15 +167,15 @@ void *elaborateSingleCamera(void *ptr)
             for(auto d:detected){
                 if(d.cl < 6){
                     convertCameraPixelsToMapMeters(d.x + d.w / 2, d.y + d.h, d.cl, cam->prjMat, north, east);
-                    Data obj;
-                    obj.frame_     = 0;
-                    obj.class_     = d.cl;
-                    obj.x_         = north;
-                    obj.y_         = east;
+                    tracking::obj_m obj;
+                    obj.frame   = 0;
+                    obj.cl      = d.cl;
+                    obj.x       = north;
+                    obj.y       = east;
                     cur_frame.push_back(obj);
                 }
             }
-            t.Track(cur_frame,tr_verbose);
+            t.track(cur_frame,tr_verbose);
 
             //feed the viewer
             if(cam->show)

@@ -16,9 +16,9 @@ void pixel2GPS(const int x, const int y, double &lat, double &lon);
 void GPS2pixel(double lat, double lon, int &x, int &y);
 
 void convertCameraPixelsToMapMeters(const int x, const int y, const int cl, const cv::Mat& prj_mat, double& north, double& east);
-std::vector<tracker_line> getTrackingLines(const Tracking& t, const cv::Mat& inv_prj_mat, const int cam_id, bool verbose=false);
+std::vector<tracker_line> getTrackingLines(const tracking::Tracking& t, const cv::Mat& inv_prj_mat, const int cam_id, bool verbose=false);
 
-void prepareMessage(const Tracking& t, MasaMessage& message);
+void prepareMessage(const tracking::Tracking& t, MasaMessage& message);
 
 void *elaborateSingleCamera(void *ptr);
 

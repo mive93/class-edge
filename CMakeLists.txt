@@ -34,7 +34,7 @@ include_directories(/usr/include/python2.7)
 
 add_subdirectory(tkDNN)
 add_subdirectory(tkCommon)
-add_subdirectory(tracker_CLASS/c++)
+add_subdirectory(class-tracker)
 
 #-------------------------------------------------------------------------------
 # Build libraries
@@ -42,7 +42,7 @@ add_subdirectory(tracker_CLASS/c++)
 
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 
-                    ${CMAKE_CURRENT_SOURCE_DIR}/tracker_CLASS/c++/include 
+                    ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/include 
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkDNN/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include)
