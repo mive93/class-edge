@@ -64,7 +64,7 @@ class EdgeViewer : public tk::gui::Viewer {
             else if(nCameras == 5 || nCameras == 6){
                 viewport_w /= 2;
                 viewport_h /= 3;
-                viewport_x = viewport_w*(index/2);
+                viewport_x = viewport_w*(index/3);
                 viewport_y = viewport_h*(index%3);
             }
 
