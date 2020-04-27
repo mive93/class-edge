@@ -4,6 +4,8 @@
 #include "tkCommon/gui/Viewer.h"
 #include <map>
 
+namespace edge{
+
 struct tracker_line{
     std::vector<tk::common::Vector3<float>> points;
     tk::gui::Color_t                        color;
@@ -196,5 +198,7 @@ class EdgeViewer : public tk::gui::Viewer {
             cameraData[idIndexBind[id]].id = id;
         }
 };
+
+}
 
 #endif /*EDGEVIEWER_H*/

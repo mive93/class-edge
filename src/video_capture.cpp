@@ -1,9 +1,8 @@
 #include "video_capture.h"
 
-
 void *readVideoCapture( void *ptr )
 {
-    video_cap_data* data = (video_cap_data*) ptr;
+    edge::video_cap_data* data = (edge::video_cap_data*) ptr;
     
     std::cout<<"thread: "<<data->input<<std::endl;
     cv::VideoCapture cap(data->input);

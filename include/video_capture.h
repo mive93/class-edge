@@ -9,6 +9,7 @@
 #include "tkDNN/utils.h"
 #include "data.h"
 
+namespace edge{
 
 struct video_cap_data
 {
@@ -17,6 +18,7 @@ struct video_cap_data
     std::mutex mtxF;
 
 };
+}
 
 void *readVideoCapture(void *ptr);
 

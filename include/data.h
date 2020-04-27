@@ -41,7 +41,7 @@ struct camera{
 std::ostream& operator<<(std::ostream& os, const edge::camera_params& c);
 std::ostream& operator<<(std::ostream& os, const edge::camera& c);
 
-extern EdgeViewer *viewer;
+extern edge::EdgeViewer *viewer;
 extern bool gRun;
 extern double *adfGeoTransform;
 extern tk::common::GeodeticConverter geoConv;

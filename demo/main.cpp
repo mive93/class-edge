@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     std::vector<edge::camera> cameras = configure(argc, argv);
 
     //TODO allow to switch on and off viewer with signals
-    viewer = new EdgeViewer(cameras.size());
+    viewer = new edge::EdgeViewer(cameras.size());
     viewer->setWindowName("Cameras");
     viewer->setBackground(tk::gui::color::DARK_GRAY);
     viewer->setClassesNames(cameras[0].detNN->classesNames);

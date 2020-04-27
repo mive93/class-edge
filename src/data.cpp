@@ -32,7 +32,7 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c){
     return os;
 }
 
-EdgeViewer *viewer = nullptr;
+edge::EdgeViewer *viewer = nullptr;
 bool gRun = true;
 double *adfGeoTransform = nullptr;
 tk::common::GeodeticConverter geoConv;

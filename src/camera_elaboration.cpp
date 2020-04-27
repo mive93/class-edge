@@ -41,8 +41,8 @@ void convertCameraPixelsToMapMeters(const int x, const int y, const int cl, cons
     geoConv.geodetic2Enu(latitude, longitude, 0, &north, &east, &up);    
 }
 
-std::vector<tracker_line> getTrackingLines(const tracking::Tracking& t, const cv::Mat& inv_prj_mat, const int cam_id, bool verbose){
-    std::vector<tracker_line>  lines;
+std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, const cv::Mat& inv_prj_mat, const int cam_id, bool verbose){
+    std::vector<edge::tracker_line>  lines;
     std::vector<cv::Point2f> map_pixels;
     std::vector<cv::Point2f> camera_pixels;
 
@@ -52,7 +52,7 @@ std::vector<tracker_line> getTrackingLines(const tracking::Tracking& t, const cv
 
     for(auto tr: t.trackers){
         if(tr.predList.size()){
-            tracker_line line;
+            edge::tracker_line line;
 
             map_pixels.clear();
             camera_pixels.clear();
@@ -106,7 +106,7 @@ void *elaborateSingleCamera(void *ptr)
     std::cout<<"Starting camera: "<< cam->id << std::endl;
 
     pthread_t video_cap;
-    video_cap_data data;
+    edge::video_cap_data data;
     data.input = (char*)cam->input.c_str();
 
     if(cam->show)
