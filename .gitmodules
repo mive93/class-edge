@@ -1,6 +1,3 @@
-[submodule "tracker_CLASS"]
-	path = tracker_CLASS
-	url = https://github.com/mive93/tracker_CLASS
 [submodule "tkDNN"]
 	path = tkDNN
 	url = https://github.com/ceccocats/tkDNN
@@ -10,3 +7,6 @@
 [submodule "tkCommon"]
 	path = tkCommon
 	url = gitlab@git.hipert.unimore.it:tk/core/tkCommon.git
+[submodule "class-tracker"]
+	path = class-tracker
+	url = https://github.com/mive93/class-tracker
