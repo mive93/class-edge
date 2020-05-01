@@ -10,8 +10,10 @@ void *readVideoCapture( void *ptr )
         gRun = false; 
     else
         std::cout<<"camera started\n";
-    
-    cv::Mat frame;
+
+    const int new_width     = 960;
+    const int new_height    = 540;
+    cv::Mat frame, resized_frame;
     while(gRun) {
         cap >> frame; 
         if(!frame.data) {
@@ -20,8 +22,16 @@ void *readVideoCapture( void *ptr )
             printf("cap reinitialize\n");
             continue;
         } 
+
+        //resizing the image to 960x540 (the DNN takes in input 544x320)
+        cv::resize (frame, resized_frame, cv::Size(new_width, new_height)); 
+
         data->mtxF.lock();
-        data->frame = frame.clone();
+        data->oWidth    = frame.cols;
+        data->oHeight   = frame.rows;
+        data->width     = new_width;
+        data->height    = new_height;
+        data->frame     = resized_frame.clone();
         data->mtxF.unlock();
     }
     return (void *)0;

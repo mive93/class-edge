@@ -98,23 +98,23 @@ class EdgeViewer : public tk::gui::Viewer {
 
             for(auto& cd:cameraData){
             
+                //when receiving a new frame, convert cv::Mat into GLuint texture
                 if(cd.newFrame){
-                    //when receiving a new frame, convert cv::Mat into GLuint texture
                     glBindTexture(GL_TEXTURE_2D, cd.frameTexture);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,cd.frame.cols, cd.frame.rows, 0, GL_BGR,GL_UNSIGNED_BYTE, cd.frame.data);
-                    cd.frame_width = cd.frame.cols;
-                    cd.frame_height = cd.frame.rows;
-                    cd.aspectRatio = float(cd.frame_width)/float(cd.frame_height); 
                     cd.mtxNewFrame->lock();
-                    cd.newFrame = false;
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,cd.frame.cols, cd.frame.rows, 0, GL_BGR,GL_UNSIGNED_BYTE, cd.frame.data);
+                    cd.frame_width  = cd.frame.cols;
+                    cd.frame_height = cd.frame.rows;
+                    cd.newFrame     = false;
                     cd.mtxNewFrame->unlock();
+                    cd.aspectRatio  = float(cd.frame_width)/float(cd.frame_height); 
                 }
+
                 //set 2D view 
-                // tkViewport2D(width, height/2., 0 , height/2.);
                 settkViewport2D(idIndexBind[cd.id]);
 
                 //draw frame
@@ -141,6 +141,7 @@ class EdgeViewer : public tk::gui::Viewer {
                                     tk::common::Vector3<float>{0.03*cd.xScale, 0.03*cd.yScale, 0});
                 }
 
+                //draw lines
                 for(const auto& l:cd.lines){
                     tkSetColor(l.color);
                     tkDrawLine(l.points);
@@ -151,12 +152,12 @@ class EdgeViewer : public tk::gui::Viewer {
         }
         void setFrameData(const cv::Mat &new_frame, const std::vector<tk::dnn::box> &new_detected, const std::vector<tracker_line>& new_lines, int id){ 
             int cur_index = idIndexBind[id];
-            cameraData[cur_index].frame = new_frame.clone();
-            cameraData[cur_index].detected = new_detected;
-            cameraData[cur_index].lines = new_lines;
             
             cameraData[cur_index].mtxNewFrame->lock();
-            cameraData[cur_index].newFrame = true;
+            cameraData[cur_index].newFrame  = true;
+            cameraData[cur_index].frame     = new_frame.clone();
+            cameraData[cur_index].detected  = new_detected;
+            cameraData[cur_index].lines     = new_lines;
             cameraData[cur_index].mtxNewFrame->unlock();
         }
 

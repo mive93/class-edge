@@ -3,6 +3,12 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 
+#include "tkDNN/utils.h"
+
+#include "Profiler.h"
+#include <opencv2/cudawarping.hpp>
+
+
 void pixel2GPS(const int x, const int y, double &lat, double &lon)
 {
     //conversion from pixels to GPS, via georeferenced map parameters
@@ -41,7 +47,7 @@ void convertCameraPixelsToMapMeters(const int x, const int y, const int cl, cons
     geoConv.geodetic2Enu(latitude, longitude, 0, &north, &east, &up);    
 }
 
-std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, const cv::Mat& inv_prj_mat, const int cam_id, bool verbose){
+std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, const cv::Mat& inv_prj_mat, const int cam_id, const float scale_x, const float scale_y, bool verbose){
     std::vector<edge::tracker_line>  lines;
     std::vector<cv::Point2f> map_pixels;
     std::vector<cv::Point2f> camera_pixels;
@@ -72,7 +78,7 @@ std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, co
             {
                 if(verbose)
                     std::cout<<"x:\t"<<cp.x<<"\t y:\t"<<cp.y<<std::endl;
-                line.points.push_back(viewer->convertPosition(cp.x, cp.y, -0.004, cam_id));
+                line.points.push_back(viewer->convertPosition(cp.x*scale_x, cp.y*scale_y, -0.004, cam_id));
             }
             line.color = tk::gui::Color_t {tr.r, tr.g, tr.b, 255};
             lines.push_back(line);
@@ -140,34 +146,63 @@ void *elaborateSingleCamera(void *ptr)
 
     double north, east;
     bool verbose = false;
-    bool first_iteration = true;
+    bool first_iteration = true; 
+
+    cv::cuda::GpuMat frame_gpu, map1_gpu, map2_gpu;
+    float o_width, o_height;
+    float scale_x = 1;
+    float scale_y = 1;
+
+    cam->show = true;
+
+    //profiling
+    edge::Profiler prof(std::to_string(cam->id));
+    int n_frame = 0;
 
     while(gRun){
+        prof.tick("Total time");
         if(data.frame.data) {
-
             //copy the frame that the last frame read by the video capture thread
+            prof.tick("Copy frame");
             data.mtxF.lock();
-            distort = data.frame.clone();
+            distort     = data.frame.clone();
+            o_width     = data.oWidth;
+            o_height    = data.oHeight;
             data.mtxF.unlock();
-            
+            scale_x     = o_width / distort.cols;
+            scale_y     = o_height / distort.rows;
+            prof.tock("Copy frame");
+                       
             // undistort 
+            prof.tick("Undistort");
             if (first_iteration){
-                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, distort.size(), CV_16SC2, map1, map2);
+                cam->calibMat *=  distort.cols / o_width ;
+                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, cv::Size(o_width, o_height), CV_32F, map1, map2);
+                map1_gpu.upload(map1);
+                map2_gpu.upload(map2);
                 first_iteration = false;
             }
             cv::Mat frame;
-            cv::remap(distort, frame, map1, map2, cv::INTER_CUBIC);
+            cv::cuda::GpuMat distort_gpu;
+            distort_gpu.upload(distort);
+            cv::cuda::remap(distort_gpu, frame_gpu, map1_gpu, map2_gpu, cv::INTER_LINEAR);
+            frame_gpu.download(frame);
+            // cv::remap(distort, frame, map1, map2, cv::INTER_LINEAR);
+            prof.tock("Undistort");
 
             //inference
+            prof.tick("Inference");
             dnn_input = frame.clone();  
             cam->detNN->update(dnn_input);
             detected= cam->detNN->detected;
+            prof.tock("Inference");
 
             //feed the tracker
+            prof.tick("Tracker feeding");
             cur_frame.clear();
             for(auto d:detected){
                 if(d.cl < 6){
-                    convertCameraPixelsToMapMeters(d.x + d.w / 2, d.y + d.h, d.cl, cam->prjMat, north, east);
+                    convertCameraPixelsToMapMeters((d.x + d.w / 2)*scale_x, (d.y + d.h)*scale_y, d.cl, cam->prjMat, north, east);
                     tracking::obj_m obj;
                     obj.frame   = 0;
                     obj.cl      = d.cl;
@@ -177,17 +212,27 @@ void *elaborateSingleCamera(void *ptr)
                 }
             }
             t.track(cur_frame,tr_verbose);
+            prof.tock("Tracker feeding");
 
             //feed the viewer
+            prof.tick("Viewer feeding");
             if(cam->show)
-                viewer->setFrameData(frame, detected, getTrackingLines(t, cam->invPrjMat, cam->id, verbose), cam->id);
+                viewer->setFrameData(frame, detected, getTrackingLines(t, cam->invPrjMat, cam->id, 1/scale_x, 1/scale_y,verbose), cam->id);
+            prof.tock("Viewer feeding");
 
+            prof.tick("Prepare message");
             //send the data if the message is not empty
             prepareMessage(t, message);
             if (!message.objects.empty()){
                 communicator.send_message(&message, cam->portCommunicator);
-                std::cout<<"message sent!"<<std::endl;
+                // std::cout<<"message sent!"<<std::endl;
             }
+            prof.tock("Prepare message");
+        }
+        prof.tock("Total time");    
+        if(++n_frame == 100){
+            n_frame = 0;
+            prof.printStats();
         }
     }
     return (void *)0;

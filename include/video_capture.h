@@ -13,10 +13,13 @@ namespace edge{
 
 struct video_cap_data
 {
-    char* input = nullptr;
+    char* input     = nullptr;
     cv::Mat frame;
     std::mutex mtxF;
-
+    int oWidth  = 0;
+    int oHeight = 0;
+    int width   = 0;
+    int height  = 0;
 };
 }
 
