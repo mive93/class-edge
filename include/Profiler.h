@@ -11,6 +11,7 @@
 #include "tkDNN/utils.h"
 
 #define MAX_MIN 9999999
+#define PROF_INTERVAL 100
 
 namespace edge{
 
@@ -48,32 +49,41 @@ public:
         timers[timer_name].min = (diff < timers[timer_name].min) ? diff : timers[timer_name].min;
         timers[timer_name].max = (diff > timers[timer_name].max) ? diff : timers[timer_name].max;
         timers[timer_name].sum += diff;
+        timers[timer_name].count++;
     }
     void printStats(){
-        int max_lenght = 0;
-        for (auto const& t : timers)
-            if(t.first.size() > max_lenght)
-                max_lenght = t.first.size();
-        max_lenght += 10;
-
-        std::cout<<"######################### Profiler "<< name <<" #########################"<<std::endl;
-
+        bool print = false;
         for (auto& t : timers)
-        {
-            accumulate( t.second.diff.begin(), t.second.diff.end(), 0.0) / t.second.diff.size(); 
-            std::cout << t.first << std::fixed << std::setprecision(2)
-                    << std::setfill(' ') << std::setw (max_lenght - t.first.size())
-                    << "\t\tavg(ms): " << t.second.sum / float(t.second.diff.size()) / 1000
-                    << "\tmin(ms): " << t.second.min / 1000
-                    << "\tmax(ms): " << t.second.max / 1000
-                    << std::endl ;
+            if (t.second.count == PROF_INTERVAL) {
+                print = true;
+                break;
+            }
 
-            t.second.min = MAX_MIN;
-            t.second.max = 0;
-            t.second.sum = 0;
-            t.second.diff.clear();
+        if(print){
+            int max_lenght = 0;
+            for (auto const& t : timers)
+                if(t.first.size() > max_lenght)
+                    max_lenght = t.first.size();
+            max_lenght += 10;
+
+            std::cout<<"######################### Profiler "<< name <<" #########################"<<std::endl;
+
+            for (auto& t : timers)
+            {
+                std::cout << t.first << std::fixed << std::setprecision(2)
+                        << std::setfill(' ') << std::setw (max_lenght - t.first.size())
+                        << "\t\tavg(ms): " << t.second.sum / float(t.second.diff.size()) / 1000
+                        << "\tmin(ms): " << t.second.min / 1000
+                        << "\tmax(ms): " << t.second.max / 1000
+                        << std::endl ;
+
+                t.second.min    = MAX_MIN;
+                t.second.max    = 0;
+                t.second.sum    = 0;
+                t.second.count  = 0;
+                t.second.diff.clear();
+            }
         }
-
     }
 };
 

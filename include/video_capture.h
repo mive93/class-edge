@@ -8,6 +8,7 @@
 
 #include "tkDNN/utils.h"
 #include "data.h"
+#include "Profiler.h"
 
 namespace edge{
 

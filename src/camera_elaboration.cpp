@@ -157,7 +157,6 @@ void *elaborateSingleCamera(void *ptr)
 
     //profiling
     edge::Profiler prof(std::to_string(cam->id));
-    int n_frame = 0;
 
     while(gRun){
         prof.tick("Total time");
@@ -230,10 +229,7 @@ void *elaborateSingleCamera(void *ptr)
             prof.tock("Prepare message");
         }
         prof.tock("Total time");    
-        if(++n_frame == 100){
-            n_frame = 0;
-            prof.printStats();
-        }
+        prof.printStats();
     }
     return (void *)0;
 }
