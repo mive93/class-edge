@@ -25,16 +25,18 @@ struct camera_params
 };
 
 struct camera{
-    cv::Mat                 prjMat;
-    cv::Mat                 invPrjMat;
-    cv::Mat                 calibMat;
-    cv::Mat                 distCoeff;
-    std::string             input = "";
-    std::string             ipCommunicator = "127.0.0.1";
-    tk::dnn::DetectionNN*   detNN = nullptr;  
-    int                     id = 0;
-    int                     portCommunicator = 8888;
-    bool                    show = false;
+    cv::Mat                         prjMat;
+    cv::Mat                         invPrjMat;
+    cv::Mat                         calibMat;
+    cv::Mat                         distCoeff;
+    std::string                     input = "";
+    std::string                     ipCommunicator = "127.0.0.1";
+    tk::dnn::DetectionNN*           detNN = nullptr;  
+    tk::common::GeodeticConverter   geoConv; 
+    double*                         adfGeoTransform = nullptr;
+    int                             id = 0;
+    int                             portCommunicator = 8888;
+    bool                            show = false;
 };
 }
 
@@ -43,8 +45,5 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c);
 
 extern edge::EdgeViewer *viewer;
 extern bool gRun;
-extern double *adfGeoTransform;
-extern tk::common::GeodeticConverter geoConv;
-
 
 #endif /*DATA_H*/

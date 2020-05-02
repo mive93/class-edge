@@ -11,7 +11,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTKPROJ_PATH='\"${CMAKE_CURRENT_SOURCE_
 find_package(CUDA 9.0 REQUIRED)
 SET(CUDA_SEPARABLE_COMPILATION ON)
 #set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -arch=sm_30 --compiler-options '-fPIC'")
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS})
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -std=c++11)
+
+#file(GLOB class-edge-CUSRC "src/*.cu")
+#cuda_include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CUDA_INCLUDE_DIRS} )
+cuda_add_library(class-kernels src/undistort.cu)
 
 #-------------------------------------------------------------------------------
 # External Libraries
@@ -50,7 +54,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
 include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${NVINFER_INCLUDES} ${CUDNN_INCLUDE_DIRS})
 
 file(GLOB class-edge-SRC "src/*.cpp")
-set(class-edge-LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} yaml-cpp tkDNN tkCommon class-tracker gdal python2.7)
+set(class-edge-LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} class-kernels yaml-cpp tkDNN tkCommon class-tracker gdal python2.7)
 add_library(class-edge SHARED ${class-edge-SRC})
 target_link_libraries(class-edge ${class-edge-LIBS} )
 
@@ -62,3 +66,6 @@ target_link_libraries(edge class-edge)
 
 add_executable(encrypt demo/encrypt_params.cpp)
 target_link_libraries(encrypt class-edge)
+
+add_executable(test_undistort demo/test_undistort.cpp)
+target_link_libraries(test_undistort class-edge)

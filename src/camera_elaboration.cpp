@@ -6,10 +6,10 @@
 #include "tkDNN/utils.h"
 
 #include "Profiler.h"
-#include <opencv2/cudawarping.hpp>
 
+#include "undistort.h"
 
-void pixel2GPS(const int x, const int y, double &lat, double &lon)
+void pixel2GPS(const int x, const int y, double &lat, double &lon, double* adfGeoTransform)
 {
     //conversion from pixels to GPS, via georeferenced map parameters
     double xoff, a, b, yoff, d, e;
@@ -23,14 +23,14 @@ void pixel2GPS(const int x, const int y, double &lat, double &lon)
     lon     = a * x + b * y + xoff;
     lat     = d * x + e * y + yoff;
 }
-void GPS2pixel(double lat, double lon, int &x, int &y)
+void GPS2pixel(double lat, double lon, int &x, int &y, double* adfGeoTransform)
 {
     //conversion from GPS to pixels, via georeferenced map parameters
     x = int(round( (lon - adfGeoTransform[0]) / adfGeoTransform[1]) );
     y = int(round( (lat - adfGeoTransform[3]) / adfGeoTransform[5]) );
 }
 
-void convertCameraPixelsToMapMeters(const int x, const int y, const int cl, const cv::Mat& prj_mat, double& north, double& east)
+void convertCameraPixelsToMapMeters(const int x, const int y, const int cl, edge::camera& cam, double& north, double& east)
 {
     double latitude, longitude;
     double up;
@@ -38,16 +38,16 @@ void convertCameraPixelsToMapMeters(const int x, const int y, const int cl, cons
     //transform camera pixel into georeferenced map pixel
     std::vector<cv::Point2f> x_y, ll;
     x_y.push_back(cv::Point2f(x, y));
-    cv::perspectiveTransform(x_y, ll, prj_mat);
+    cv::perspectiveTransform(x_y, ll, cam.prjMat);
 
     //tranform to map pixel into GPS
-    pixel2GPS(ll[0].x, ll[0].y, latitude, longitude);
+    pixel2GPS(ll[0].x, ll[0].y, latitude, longitude, cam.adfGeoTransform);
 
     //conversion from GPS to meters 
-    geoConv.geodetic2Enu(latitude, longitude, 0, &north, &east, &up);    
+    cam.geoConv.geodetic2Enu(latitude, longitude, 0, &north, &east, &up);    
 }
 
-std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, const cv::Mat& inv_prj_mat, const int cam_id, const float scale_x, const float scale_y, bool verbose){
+std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, edge::camera& cam, const float scale_x, const float scale_y, bool verbose){
     std::vector<edge::tracker_line>  lines;
     std::vector<cv::Point2f> map_pixels;
     std::vector<cv::Point2f> camera_pixels;
@@ -64,21 +64,21 @@ std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, co
             camera_pixels.clear();
             for(int i=0; i < tr.predList.size(); ++i){
                 //convert from meters to GPS
-                geoConv.enu2Geodetic(tr.predList[i].x, tr.predList[i].y, 0, &latitude, &longitude, &altitude);
+                cam.geoConv.enu2Geodetic(tr.predList[i].x, tr.predList[i].y, 0, &latitude, &longitude, &altitude);
                 //convert from GPS to map pixels
-                GPS2pixel(latitude, longitude, map_pix_x, map_pix_y);
+                GPS2pixel(latitude, longitude, map_pix_x, map_pix_y, cam.adfGeoTransform);
                 map_pixels.push_back(cv::Point2f(map_pix_x, map_pix_y));
             }
 
             //transform map pixels to camers pixels
-            cv::perspectiveTransform(map_pixels, camera_pixels, inv_prj_mat);
+            cv::perspectiveTransform(map_pixels, camera_pixels, cam.invPrjMat);
             
             //convert into viewer coordinates
             for(auto cp: camera_pixels)
             {
                 if(verbose)
                     std::cout<<"x:\t"<<cp.x<<"\t y:\t"<<cp.y<<std::endl;
-                line.points.push_back(viewer->convertPosition(cp.x*scale_x, cp.y*scale_y, -0.004, cam_id));
+                line.points.push_back(viewer->convertPosition(cp.x*scale_x, cp.y*scale_y, -0.004, cam.id));
             }
             line.color = tk::gui::Color_t {tr.r, tr.g, tr.b, 255};
             lines.push_back(line);
@@ -87,7 +87,7 @@ std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, co
     return lines;
 }
 
-void prepareMessage(const tracking::Tracking& t, MasaMessage& message)
+void prepareMessage(const tracking::Tracking& t, MasaMessage& message,tk::common::GeodeticConverter& geoConv)
 {
     message.objects.clear();
     double latitude, longitude, altitude;
@@ -137,6 +137,7 @@ void *elaborateSingleCamera(void *ptr)
     tracking::Tracking t(n_states, dt, initial_age);
     
 
+    cv::Mat frame;
     cv::Mat dnn_input;
     cv::Mat distort;
     cv::Mat map1, map2;
@@ -148,10 +149,12 @@ void *elaborateSingleCamera(void *ptr)
     bool verbose = false;
     bool first_iteration = true; 
 
-    cv::cuda::GpuMat frame_gpu, map1_gpu, map2_gpu;
-    float o_width, o_height;
+    float o_width, o_height, width, height;
     float scale_x = 1;
     float scale_y = 1;
+
+    uint8_t *d_input, *d_output; 
+    float *d_map1, *d_map2;
 
     cam->show = true;
 
@@ -167,6 +170,8 @@ void *elaborateSingleCamera(void *ptr)
             distort     = data.frame.clone();
             o_width     = data.oWidth;
             o_height    = data.oHeight;
+            width       = data.width;     
+            height      = data.height;
             data.mtxF.unlock();
             scale_x     = o_width / distort.cols;
             scale_y     = o_height / distort.rows;
@@ -175,17 +180,28 @@ void *elaborateSingleCamera(void *ptr)
             // undistort 
             prof.tick("Undistort");
             if (first_iteration){
-                cam->calibMat *=  distort.cols / o_width ;
-                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, cv::Size(o_width, o_height), CV_32F, map1, map2);
-                map1_gpu.upload(map1);
-                map2_gpu.upload(map2);
+                
+                cam->calibMat.at<double>(0,0)*=  double(width) / double(o_width);
+                cam->calibMat.at<double>(0,2)*=  double(width) / double(o_width);
+                cam->calibMat.at<double>(1,1)*=  double(width) / double(o_width);
+                cam->calibMat.at<double>(1,2)*=  double(width) / double(o_width);
+
+                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, cv::Size(width, height), CV_32F, map1, map2);
+
+                checkCuda( cudaMalloc(&d_input, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
+                checkCuda( cudaMalloc(&d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
+                checkCuda( cudaMalloc(&d_map1, map1.cols*map1.rows*map1.channels()*sizeof(float)) );
+                checkCuda( cudaMalloc(&d_map2, map2.cols*map2.rows*map2.channels()*sizeof(float)) );
+                frame = distort.clone();
+
+                checkCuda( cudaMemcpy(d_map1, (float*)map1.data,  map1.cols*map1.rows*map1.channels()*sizeof(float), cudaMemcpyHostToDevice));
+                checkCuda( cudaMemcpy(d_map2, (float*)map2.data,  map2.cols*map2.rows*map2.channels()*sizeof(float), cudaMemcpyHostToDevice));
+                
                 first_iteration = false;
             }
-            cv::Mat frame;
-            cv::cuda::GpuMat distort_gpu;
-            distort_gpu.upload(distort);
-            cv::cuda::remap(distort_gpu, frame_gpu, map1_gpu, map2_gpu, cv::INTER_LINEAR);
-            frame_gpu.download(frame);
+            checkCuda( cudaMemcpy(d_input, (uint8_t*)distort.data,  distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyHostToDevice));
+            remap(d_input, width, height, 3, d_map1, d_map2, d_output, width , height, 3);
+            checkCuda( cudaMemcpy((uint8_t*)frame.data , d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyDeviceToHost));
             // cv::remap(distort, frame, map1, map2, cv::INTER_LINEAR);
             prof.tock("Undistort");
 
@@ -201,7 +217,7 @@ void *elaborateSingleCamera(void *ptr)
             cur_frame.clear();
             for(auto d:detected){
                 if(d.cl < 6){
-                    convertCameraPixelsToMapMeters((d.x + d.w / 2)*scale_x, (d.y + d.h)*scale_y, d.cl, cam->prjMat, north, east);
+                    convertCameraPixelsToMapMeters((d.x + d.w / 2)*scale_x, (d.y + d.h)*scale_y, d.cl, *cam, north, east);
                     tracking::obj_m obj;
                     obj.frame   = 0;
                     obj.cl      = d.cl;
@@ -216,12 +232,12 @@ void *elaborateSingleCamera(void *ptr)
             //feed the viewer
             prof.tick("Viewer feeding");
             if(cam->show)
-                viewer->setFrameData(frame, detected, getTrackingLines(t, cam->invPrjMat, cam->id, 1/scale_x, 1/scale_y,verbose), cam->id);
+                viewer->setFrameData(frame, detected, getTrackingLines(t, *cam, 1/scale_x, 1/scale_y,verbose), cam->id);
             prof.tock("Viewer feeding");
 
             prof.tick("Prepare message");
             //send the data if the message is not empty
-            prepareMessage(t, message);
+            prepareMessage(t, message, cam->geoConv);
             if (!message.objects.empty()){
                 communicator.send_message(&message, cam->portCommunicator);
                 // std::cout<<"message sent!"<<std::endl;
@@ -231,5 +247,10 @@ void *elaborateSingleCamera(void *ptr)
         prof.tock("Total time");    
         prof.printStats();
     }
+
+    checkCuda( cudaFree(d_input));
+    checkCuda( cudaFree(d_output));
+    checkCuda( cudaFree(d_map1));
+    checkCuda( cudaFree(d_map2));
     return (void *)0;
 }

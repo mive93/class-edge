@@ -281,14 +281,21 @@ std::vector<edge::camera> configure(int argc, char **argv)
         std::cout<<c;
 
     //read tif image to get georeference parameters
-    adfGeoTransform = (double *)malloc(6 * sizeof(double));
+    double* adfGeoTransform = (double *)malloc(6 * sizeof(double));
     readTiff(tif_map_path, adfGeoTransform);
     for(int i=0; i<6; i++)
         std::cout<<adfGeoTransform[i]<<" ";
     std::cout<<std::endl;
+    
+    for(auto& c: cameras)
+    {
+        c.adfGeoTransform = (double *)malloc(6 * sizeof(double));
+        memcpy(c.adfGeoTransform, adfGeoTransform, 6 * sizeof(double) );
 
-    //initialize the geodetic converter with a point in the MASA
-    geoConv.initialiseReference(44.655540, 10.934315, 0);
+        //initialize the geodetic converter with a point in the MASA
+        c.geoConv.initialiseReference(44.655540, 10.934315, 0);
+    }
+    free(adfGeoTransform);    
 
     return cameras;
 }

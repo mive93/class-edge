@@ -21,16 +21,11 @@ struct stats{
     double min  = MAX_MIN;
     double max  = 0;
     double sum  = 0;
-    int count   = 0;
 };
 
 class Profiler{
     std::string name;
     std::map<std::string,stats> timers;
-
-    float getMin(){}
-    float getMax(){}
-    float getA(){}
     
 public:
     Profiler(std::string profiler_name)  {
@@ -49,12 +44,11 @@ public:
         timers[timer_name].min = (diff < timers[timer_name].min) ? diff : timers[timer_name].min;
         timers[timer_name].max = (diff > timers[timer_name].max) ? diff : timers[timer_name].max;
         timers[timer_name].sum += diff;
-        timers[timer_name].count++;
     }
-    void printStats(){
+    void printStats(int interval = PROF_INTERVAL){
         bool print = false;
         for (auto& t : timers)
-            if (t.second.count == PROF_INTERVAL) {
+            if (t.second.diff.size() == interval) {
                 print = true;
                 break;
             }
@@ -77,10 +71,7 @@ public:
                         << "\tmax(ms): " << t.second.max / 1000
                         << std::endl ;
 
-                t.second.min    = MAX_MIN;
-                t.second.max    = 0;
                 t.second.sum    = 0;
-                t.second.count  = 0;
                 t.second.diff.clear();
             }
         }

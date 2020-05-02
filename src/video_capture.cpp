@@ -5,7 +5,7 @@ void *readVideoCapture( void *ptr )
     edge::video_cap_data* data = (edge::video_cap_data*) ptr;
     
     std::cout<<"thread: "<<data->input<<std::endl;
-    cv::VideoCapture cap(data->input);
+    cv::VideoCapture cap(data->input, cv::CAP_FFMPEG);
     if(!cap.isOpened())
         gRun = false; 
     else
@@ -36,13 +36,13 @@ void *readVideoCapture( void *ptr )
         data->mtxF.lock();
         data->oWidth    = frame.cols;
         data->oHeight   = frame.rows;
-        data->width     = new_width;
-        data->height    = new_height;
+        data->width     = resized_frame.cols;
+        data->height    = resized_frame.rows;
         data->frame     = resized_frame.clone();
         data->mtxF.unlock();
         prof.tock("Frame copy");
 
-        prof.printStats();
+        // prof.printStats();
     }
     return (void *)0;
 }

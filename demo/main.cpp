@@ -42,7 +42,5 @@ int main(int argc, char **argv)
     for(size_t i=0; i<cameras.size(); ++i)
         printf("Thread %d returns: %d\n", i,iret[i]); 
 
-    free(adfGeoTransform);
-    
     return EXIT_SUCCESS;
 }

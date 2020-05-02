@@ -127,6 +127,7 @@ class EdgeViewer : public tk::gui::Viewer {
                 } glPopMatrix();
 
                 //draw detections
+                cd.mtxNewFrame->lock();
                 for(const auto& d: cd.detected){
                     tk::gui::Color_t col = tk::gui::color::RED;
                     if(colors.size() > 0) col = colors[d.cl];                    
@@ -140,12 +141,15 @@ class EdgeViewer : public tk::gui::Viewer {
                                     tk::common::Vector3<float>{0, 0, 0},
                                     tk::common::Vector3<float>{0.03*cd.xScale, 0.03*cd.yScale, 0});
                 }
+                cd.mtxNewFrame->unlock();
 
                 //draw lines
+                cd.mtxNewFrame->lock();
                 for(const auto& l:cd.lines){
                     tkSetColor(l.color);
                     tkDrawLine(l.points);
                 }
+                cd.mtxNewFrame->unlock();
             
             }
             

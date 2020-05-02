@@ -1,6 +1,6 @@
 %YAML:1.0
 ---
-net: "yolo3_berkeley_fp32.rt"
+net: "yolo3_berkeley_fp16.rt"
 type: "y"
 classes: 80
 tif: "../data/masa_map.tif"
