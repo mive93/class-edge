@@ -18,12 +18,16 @@ std::string executeCommandAndGetOutput(const char * command){
 }
 
 std::string decryptString(std::string encrypted, const std::string& password){
-    std::string command = "echo '"+ encrypted +"' | openssl enc -e -aes-256-cbc -a -d -salt -iter 100000 -pass pass:"+password;
+    // when using OpenSSL 1.1.1 use the following
+    // std::string command = "echo '"+ encrypted +"' | openssl enc -e -aes-256-cbc -a -d -salt -iter 100000 -pass pass:"+password;
+    std::string command = "echo '"+ encrypted +"' | openssl enc -e -aes-256-cbc -a -d -salt -pass pass:"+password;
     return executeCommandAndGetOutput(command.c_str());
 }
 
 std::string encryptString(std::string to_encrypt, const std::string& password){
-    std::string command = "echo -n "+to_encrypt+" | openssl enc -e -aes-256-cbc -a -salt -iter 100000 -pass pass:"+password;
+    // when using OpenSSL 1.1.1 use the following
+    // std::string command = "echo -n "+to_encrypt+" | openssl enc -e -aes-256-cbc -a -salt -iter 100000 -pass pass:"+password;
+    std::string command = "echo -n "+to_encrypt+" | openssl enc -e -aes-256-cbc -a -salt -pass pass:"+password;
     return executeCommandAndGetOutput(command.c_str());
 }
 
