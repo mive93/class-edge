@@ -162,8 +162,9 @@ void *elaborateSingleCamera(void *ptr)
     edge::Profiler prof(std::to_string(cam->id));
 
     while(gRun){
-        prof.tick("Total time");
+        
         if(data.frame.data) {
+            prof.tick("Total time");
             //copy the frame that the last frame read by the video capture thread
             prof.tick("Copy frame");
             data.mtxF.lock();
@@ -243,9 +244,9 @@ void *elaborateSingleCamera(void *ptr)
                 // std::cout<<"message sent!"<<std::endl;
             }
             prof.tock("Prepare message");
+            prof.tock("Total time");    
+            prof.printStats();
         }
-        prof.tock("Total time");    
-        prof.printStats();
     }
 
     checkCuda( cudaFree(d_input));
