@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTKPROJ_PATH='\"${CMAKE_CURRENT_SOURCE_
 find_package(CUDA 9.0 REQUIRED)
 SET(CUDA_SEPARABLE_COMPILATION ON)
 #set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -arch=sm_30 --compiler-options '-fPIC'")
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -std=c++11)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS})
 
 #file(GLOB class-edge-CUSRC "src/*.cu")
 #cuda_include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CUDA_INCLUDE_DIRS} )

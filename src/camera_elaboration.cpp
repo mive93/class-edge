@@ -87,7 +87,7 @@ std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, ed
     return lines;
 }
 
-void prepareMessage(const tracking::Tracking& t, MasaMessage& message,tk::common::GeodeticConverter& geoConv)
+void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::common::GeodeticConverter& geoConv, const int cam_id)
 {
     message.objects.clear();
     double latitude, longitude, altitude;
@@ -101,7 +101,7 @@ void prepareMessage(const tracking::Tracking& t, MasaMessage& message,tk::common
             message.objects.push_back(getRoadUser(latitude, longitude, tr.predList[i].vel, tr.predList[i].yaw, tr.cl));
         }
     }
-
+    message.cam_idx = cam_id;
     message.t_stamp_ms = getTimeMs();
     message.num_objects = message.objects.size();
 }
@@ -238,7 +238,7 @@ void *elaborateSingleCamera(void *ptr)
 
             prof.tick("Prepare message");
             //send the data if the message is not empty
-            prepareMessage(t, message, cam->geoConv);
+            prepareMessage(t, message, cam->geoConv, cam->id);
             if (!message.objects.empty()){
                 communicator.send_message(&message, cam->portCommunicator);
                 // std::cout<<"message sent!"<<std::endl;

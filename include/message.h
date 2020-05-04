@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <cmath>
 
 #include "communicator.hpp"
 #include "objects.hpp"

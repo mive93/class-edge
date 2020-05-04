@@ -35,7 +35,7 @@ struct camera{
     tk::common::GeodeticConverter   geoConv; 
     double*                         adfGeoTransform = nullptr;
     int                             id = 0;
-    int                             portCommunicator = 8888;
+    int                             portCommunicator = 8889;
     bool                            show = false;
 };
 }
