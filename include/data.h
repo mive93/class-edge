@@ -51,5 +51,6 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c);
 
 extern edge::EdgeViewer *viewer;
 extern bool gRun;
+extern bool show;
 
 #endif /*DATA_H*/

@@ -177,10 +177,17 @@ void initializeCamerasNetworks(std:: vector<edge::camera>& cameras, const std::s
     //if the rt file does not esits, run the test to create it
     if(!fileExist(net.c_str())){
         std::string test_cmd = "tkDNN/test_" + net.substr(0, net.find("_fp"));
+        std::string precision =  net.substr(net.find("_fp")+3, 2);
+        if(std::stoi(precision) == 16)
+            setenv("TKDNN_MODE","FP16",1);
+
         if(!fileExist(test_cmd.c_str()))
             FatalError("Wrong network, the test does not exist for tkDNN");
         system(test_cmd.c_str());        
     }
+
+    if(!fileExist(net.c_str()))
+        FatalError("Problem with rt creation");
 
     //assign to each camera a detector
     for(auto &c: cameras){

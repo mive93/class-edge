@@ -117,7 +117,7 @@ void *elaborateSingleCamera(void *ptr)
     data.width  = cam->streamWidth;
     data.height = cam->streamHeight;
 
-    if(cam->show)
+    if(show && cam->show)
         viewer->bindCamera(cam->id);
     
     if (pthread_create(&video_cap, NULL, readVideoCapture, (void *)&data)){
@@ -226,7 +226,7 @@ void *elaborateSingleCamera(void *ptr)
 
             //feed the viewer
             prof.tick("Viewer feeding");
-            if(cam->show)
+            if(show && cam->show)
                 viewer->setFrameData(frame, detected, getTrackingLines(t, *cam, 1/scale_x, 1/scale_y,verbose), cam->id);
             prof.tock("Viewer feeding");
 
