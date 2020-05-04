@@ -36,7 +36,7 @@ git clone gitlab@git.hipert.unimore.it:mverucchi/class-edge.git
 cd class-edge
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make -j
 ```
 
