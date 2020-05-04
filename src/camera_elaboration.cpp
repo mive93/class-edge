@@ -113,7 +113,9 @@ void *elaborateSingleCamera(void *ptr)
 
     pthread_t video_cap;
     edge::video_cap_data data;
-    data.input = (char*)cam->input.c_str();
+    data.input  = (char*)cam->input.c_str();
+    data.width  = cam->streamWidth;
+    data.height = cam->streamHeight;
 
     if(cam->show)
         viewer->bindCamera(cam->id);
@@ -149,9 +151,8 @@ void *elaborateSingleCamera(void *ptr)
     bool verbose = false;
     bool first_iteration = true; 
 
-    float o_width, o_height, width, height;
-    float scale_x = 1;
-    float scale_y = 1;
+    float scale_x   = cam->calibWidth  / cam->streamWidth;
+    float scale_y   = cam->calibHeight / cam->streamHeight;
 
     uint8_t *d_input, *d_output; 
     float *d_map1, *d_map2;
@@ -165,29 +166,23 @@ void *elaborateSingleCamera(void *ptr)
         
         if(data.frame.data) {
             prof.tick("Total time");
+            
             //copy the frame that the last frame read by the video capture thread
             prof.tick("Copy frame");
             data.mtxF.lock();
-            distort     = data.frame.clone();
-            o_width     = data.oWidth;
-            o_height    = data.oHeight;
-            width       = data.width;     
-            height      = data.height;
+            distort = data.frame.clone();
             data.mtxF.unlock();
-            scale_x     = o_width / distort.cols;
-            scale_y     = o_height / distort.rows;
             prof.tock("Copy frame");
                        
             // undistort 
             prof.tick("Undistort");
             if (first_iteration){
-                
-                cam->calibMat.at<double>(0,0)*=  double(width) / double(o_width);
-                cam->calibMat.at<double>(0,2)*=  double(width) / double(o_width);
-                cam->calibMat.at<double>(1,1)*=  double(width) / double(o_width);
-                cam->calibMat.at<double>(1,2)*=  double(width) / double(o_width);
+                cam->calibMat.at<double>(0,0)*=  double(cam->streamWidth) / double(cam->calibWidth);
+                cam->calibMat.at<double>(0,2)*=  double(cam->streamWidth) / double(cam->calibWidth);
+                cam->calibMat.at<double>(1,1)*=  double(cam->streamWidth) / double(cam->calibWidth);
+                cam->calibMat.at<double>(1,2)*=  double(cam->streamWidth) / double(cam->calibWidth);
 
-                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, cv::Size(width, height), CV_32F, map1, map2);
+                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, cv::Size(cam->streamWidth, cam->streamHeight), CV_32F, map1, map2);
 
                 checkCuda( cudaMalloc(&d_input, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
                 checkCuda( cudaMalloc(&d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
@@ -201,7 +196,7 @@ void *elaborateSingleCamera(void *ptr)
                 first_iteration = false;
             }
             checkCuda( cudaMemcpy(d_input, (uint8_t*)distort.data,  distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyHostToDevice));
-            remap(d_input, width, height, 3, d_map1, d_map2, d_output, width , height, 3);
+            remap(d_input, cam->streamWidth, cam->streamHeight, 3, d_map1, d_map2, d_output, cam->streamWidth , cam->streamHeight, 3);
             checkCuda( cudaMemcpy((uint8_t*)frame.data , d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyDeviceToHost));
             // cv::remap(distort, frame, map1, map2, cv::INTER_LINEAR);
             prof.tock("Undistort");

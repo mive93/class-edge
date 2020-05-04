@@ -11,8 +11,8 @@ void *readVideoCapture( void *ptr )
     else
         std::cout<<"camera started\n";
 
-    const int new_width     = 960;
-    const int new_height    = 540;
+    const int new_width     = data->width;
+    const int new_height    = data->height;
     cv::Mat frame, resized_frame;
 
     edge::Profiler prof("Video capture" + std::string(data->input));
@@ -34,10 +34,6 @@ void *readVideoCapture( void *ptr )
 
         prof.tick("Frame copy");
         data->mtxF.lock();
-        data->oWidth    = frame.cols;
-        data->oHeight   = frame.rows;
-        data->width     = resized_frame.cols;
-        data->height    = resized_frame.rows;
         data->frame     = resized_frame.clone();
         data->mtxF.unlock();
         prof.tock("Frame copy");

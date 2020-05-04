@@ -30,11 +30,15 @@ std::string encryptString(std::string to_encrypt, const std::string& password){
 void readParamsFromYaml(const std::string& params_path, const std::vector<int>& cameras_ids,std::vector<edge::camera_params>& cameras_par,std::string& net, char& type, int& n_classes, std::string& tif_map_path){
     std::string password = ""; 
     YAML::Node config   = YAML::LoadFile(params_path);
-    net          = config["net"].as<std::string>();
-    type         = config["type"].as<char>();
-    n_classes    = config["classes"].as<int>();
-    tif_map_path = config["tif"].as<std::string>();
-    
+    net             = config["net"].as<std::string>();
+    type            = config["type"].as<char>();
+    n_classes       = config["classes"].as<int>();
+    tif_map_path    = config["tif"].as<std::string>();
+
+    int stream_height, stream_width;
+    stream_width    = config["width"].as<int>();
+    stream_height   = config["height"].as<int>();
+
     YAML::Node cameras_yaml = config["cameras"];
     bool use_info;
     int n_cameras = 0;
@@ -63,6 +67,8 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
         cameras_par[n_cameras-1].maskfilePath       = cameras_yaml[i]["maskfile"].as<std::string>();
         cameras_par[n_cameras-1].cameraCalibPath    = cameras_yaml[i]["cameraCalib"].as<std::string>();
         cameras_par[n_cameras-1].maskFileOrientPath = cameras_yaml[i]["maskFileOrient"].as<std::string>();
+        cameras_par[n_cameras-1].streamWidth        = stream_width;
+        cameras_par[n_cameras-1].streamHeight       = stream_height;
         cameras_par[n_cameras-1].show               = true;
     }
 }
@@ -141,6 +147,8 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
         cameras_par[0].maskfilePath         = "../data/masks/20936_mask.jpg";
         cameras_par[0].cameraCalibPath      = "../data/calib_cameras/20936.params";
         cameras_par[0].maskFileOrientPath   = "../data/masks_orient/1920-1080_mask_null.jpg";
+        cameras_par[0].streamWidth          = 960;
+        cameras_par[0].streamHeight         = 540;
         cameras_par[0].show                 = true;
     }
     else 
@@ -210,9 +218,13 @@ void readProjectionMatrix(const std::string& path, cv::Mat& prj_mat)
         FatalError("Problem with projection matrix file");    
 }
 
-void readCalibrationMatrix(const std::string& path, cv::Mat& calib_mat, cv::Mat& dist_coeff)
+void readCalibrationMatrix(const std::string& path, cv::Mat& calib_mat, cv::Mat& dist_coeff, int& image_width, int& image_height)
 {
     YAML::Node config   = YAML::LoadFile(path);
+
+    //read calibration size
+    image_width     = config["image_width"].as<int>();
+    image_height    = config["image_height"].as<int>();
 
     //read camera matrix
     int rows = config["camera_matrix"]["rows"].as<int>();
@@ -241,6 +253,9 @@ void readCalibrationMatrix(const std::string& path, cv::Mat& calib_mat, cv::Mat&
 
 void readTiff(const std::string& path, double *adfGeoTransform)
 {
+    if(!fileExist(path.c_str()))
+        FatalError("Tif map given does not exit. Needed for tracker");
+    
     GDALDataset *poDataset;
     GDALAllRegister();
     poDataset = (GDALDataset *)GDALOpen(path.c_str(), GA_ReadOnly);
@@ -266,10 +281,12 @@ std::vector<edge::camera> configure(int argc, char **argv)
     //read calibration matrixes for each camera
     std::vector<edge::camera> cameras(cameras_par.size());
     for(size_t i=0; i<cameras.size(); ++i){
-        readCalibrationMatrix(cameras_par[i].cameraCalibPath, cameras[i].calibMat, cameras[i].distCoeff);
+        readCalibrationMatrix(cameras_par[i].cameraCalibPath, cameras[i].calibMat, cameras[i].distCoeff, cameras[i].calibWidth, cameras[i].calibHeight);
         readProjectionMatrix(cameras_par[i].pmatrixPath, cameras[i].prjMat);
         cameras[i].id           = cameras_par[i].id;
         cameras[i].input        = cameras_par[i].input;
+        cameras[i].streamWidth  = cameras_par[i].streamWidth;
+        cameras[i].streamHeight = cameras_par[i].streamHeight;
         cameras[i].show         = cameras_par[i].show;
         cameras[i].invPrjMat    = cameras[i].prjMat.inv();
     }

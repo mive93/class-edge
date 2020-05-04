@@ -21,7 +21,9 @@ struct camera_params
     std::string             cameraCalibPath = "";
     std::string             maskFileOrientPath = "";
     int                     id = 0;
-    bool                    show = false;
+    int                     streamWidth = 0;
+    int                     streamHeight = 0;
+    bool                    show = false;    
 };
 
 struct camera{
@@ -36,6 +38,10 @@ struct camera{
     double*                         adfGeoTransform = nullptr;
     int                             id = 0;
     int                             portCommunicator = 8889;
+    int                             calibWidth;
+    int                             calibHeight;
+    int                             streamWidth;
+    int                             streamHeight;
     bool                            show = false;
 };
 }

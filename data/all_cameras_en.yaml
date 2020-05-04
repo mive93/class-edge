@@ -1,4 +1,6 @@
 net: !<!> yolo3_berkeley_fp32.rt
+width: 960
+height: 540
 cameras:
   - maskfile: !<!> ../data/masks/20936_mask.jpg
     cameraCalib: !<!> ../data/calib_cameras/20936.params

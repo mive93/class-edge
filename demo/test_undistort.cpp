@@ -7,13 +7,13 @@ int main()
 {
 
     cv::Mat calib_mat, dist_coeff;
-    readCalibrationMatrix("../data/calib_cameras/20936.params", calib_mat, dist_coeff);
+    int o_width, o_height;
+    readCalibrationMatrix("../data/calib_cameras/20936.params", calib_mat, dist_coeff, o_width, o_height);
 
     cv::VideoCapture cap("../data/20936.mp4", cv::CAP_FFMPEG);
 
     const int new_width     = 960;
     const int new_height    = 540;
-    int o_width, o_height;
 
     cv::Mat frame, resized_frame, undistort_opencv, map1, map2;
 
@@ -38,8 +38,6 @@ int main()
         if(!frame.data) {
             break;
         }
-        o_width = frame.cols;
-        o_height = frame.rows;
         prof.tock("Frame acquisition");
 
         prof.tick("Resize");

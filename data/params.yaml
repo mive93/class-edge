@@ -4,6 +4,8 @@ net: "yolo3_berkeley_fp16.rt"
 type: "y"
 classes: 80
 tif: "../data/masa_map.tif"
+width: 960
+height: 540
 cameras: 
   - id: 20936
     encrypted: 0
