@@ -117,8 +117,8 @@ void *elaborateSingleCamera(void *ptr)
     data.width  = cam->streamWidth;
     data.height = cam->streamHeight;
 
-    if(show && cam->show)
-        viewer->bindCamera(cam->id);
+    if(show)
+        viewer->bindCamera(cam->id, &cam->show);
     
     if (pthread_create(&video_cap, NULL, readVideoCapture, (void *)&data)){
         fprintf(stderr, "Error creating thread\n");
@@ -156,8 +156,6 @@ void *elaborateSingleCamera(void *ptr)
 
     uint8_t *d_input, *d_output; 
     float *d_map1, *d_map2;
-
-    cam->show = true;
 
     //profiling
     edge::Profiler prof(std::to_string(cam->id));

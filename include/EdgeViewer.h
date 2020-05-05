@@ -16,6 +16,8 @@ struct camera_data{
     std::vector<tracker_line> lines;
     cv::Mat frame;
     int id = 0;
+    int showId = -1;
+    bool *showCamera;
     bool newFrame = false;
     std::mutex *mtxNewFrame;
 
@@ -37,7 +39,8 @@ class EdgeViewer : public tk::gui::Viewer {
         std::vector<std::string> classesNames;
         std::vector<tk::gui::Color_t> colors;
 
-        int nCameras = 1;
+        int shCameras   = 0; //showing cameras
+        int avCameras   = 1; //avaiable cameras
         int cameraIndex = 0;
         std::mutex mtxIndex;
 
@@ -45,23 +48,25 @@ class EdgeViewer : public tk::gui::Viewer {
 
         std::vector<camera_data> cameraData;
 
+        bool open = true; //for imgui
+
         void settkViewport2D(const int index){
             int viewport_h = height;
             int viewport_w = width;
             int viewport_x = 0;
             int viewport_y = 0;
-            if(nCameras == 2)
+            if(shCameras == 2)
             {
                 viewport_h /= 2;
                 viewport_y = viewport_h*index;
             }
-            else if(nCameras == 3 || nCameras == 4){
+            else if(shCameras == 3 || shCameras == 4){
                 viewport_w /= 2;
                 viewport_h /= 2;
                 viewport_x = viewport_w*(index/2);
                 viewport_y = viewport_h*(index%2);
             }
-            else if(nCameras == 5 || nCameras == 6){
+            else if(shCameras == 5 || shCameras == 6){
                 viewport_w /= 2;
                 viewport_h /= 3;
                 viewport_x = viewport_w*(index/3);
@@ -75,12 +80,14 @@ class EdgeViewer : public tk::gui::Viewer {
     public:
         EdgeViewer(int n_cameras) {
             if(n_cameras < MAX_CAMERA_VIZ)
-                nCameras = n_cameras;
+                avCameras = n_cameras;
             else
                 std::cout<<"Maximum "<<MAX_CAMERA_VIZ<<" cameras can be shown"<<std::endl;
-            cameraData.resize(nCameras);
+            cameraData.resize(avCameras);
             for(auto& cd: cameraData)
-                cd.mtxNewFrame = new std::mutex;
+                cd.mtxNewFrame  = new std::mutex;
+
+            fontPath = "../data/coolvetica.ttf";
         }
         ~EdgeViewer() {
             // for(auto& cd: cameraData)
@@ -96,7 +103,18 @@ class EdgeViewer : public tk::gui::Viewer {
         void draw() {
             tk::gui::Viewer::draw();
 
+            ImGui::Begin("Camera visualization",&open, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove);
+            ImGui::SetWindowSize(ImVec2(70*avCameras,40));
+            ImGui::SetWindowPos(ImVec2(0,0));            
             for(auto& cd:cameraData){
+                ImGui::Checkbox(std::to_string(cd.id).c_str(), cd.showCamera);
+                ImGui::SameLine();
+            }
+            ImGui::End();
+            resetShowIds();
+
+            for(auto& cd:cameraData){
+                if(!(*cd.showCamera)) continue;
             
                 //when receiving a new frame, convert cv::Mat into GLuint texture
                 if(cd.newFrame){
@@ -115,7 +133,7 @@ class EdgeViewer : public tk::gui::Viewer {
                 }
 
                 //set 2D view 
-                settkViewport2D(idIndexBind[cd.id]);
+                settkViewport2D(cd.showId);
 
                 //draw frame
                 glPushMatrix(); {
@@ -137,15 +155,23 @@ class EdgeViewer : public tk::gui::Viewer {
                     cd.size = convertSize(d.w, d.h, cd.id);
                     tkDrawRectangle(cd.pose, cd.size, false);
 
-                    tkDrawText(classesNames[d.cl],tk::common::Vector3<float>{cd.pose.x - d.w/2.0/cd.frame_width * cd.yScale, cd.pose.y+ d.h/2.0/cd.frame_height*cd.xScale, cd.pose.z},
+                    tkDrawRectangle(tk::common::Vector3<float>{cd.pose.x, cd.pose.y+ d.h/2.0/cd.frame_height*cd.xScale + 0.008*cd.yScale, cd.pose.z+0.001},
+                                    tk::common::Vector3<float>{classesNames[d.cl].size()/float(cd.frame_width)*12*cd.xScale, 0.02*cd.yScale, 0}, 
+                                    true);
+                    tkSetColor(tk::gui::color::WHITE);
+                    
+
+                    tkDrawText(classesNames[d.cl],tk::common::Vector3<float>{cd.pose.x - (classesNames[d.cl].size()/float(cd.frame_width)*11*cd.xScale)/2, 
+                                                cd.pose.y+ d.h/2.0/cd.frame_height*cd.xScale + 0.002*cd.yScale, cd.pose.z},
                                     tk::common::Vector3<float>{0, 0, 0},
-                                    tk::common::Vector3<float>{0.03*cd.xScale, 0.03*cd.yScale, 0});
+                                    tk::common::Vector3<float>{0.025*cd.xScale, 0.02*cd.yScale, 0});
                 }
                 cd.mtxNewFrame->unlock();
 
                 //draw lines
                 cd.mtxNewFrame->lock();
                 for(const auto& l:cd.lines){
+                    glLineWidth(3);
                     tkSetColor(l.color);
                     tkDrawLine(l.points);
                 }
@@ -191,16 +217,23 @@ class EdgeViewer : public tk::gui::Viewer {
             }
         }
 
-        void setNCameras(const int n_cameras){
-            nCameras = n_cameras;
-        }
-
-        void bindCamera(const int id)
+        void bindCamera(const int id, bool *show_camera)
         {         
             mtxIndex.lock();
             idIndexBind[id] = cameraIndex++;
             mtxIndex.unlock();
             cameraData[idIndexBind[id]].id = id;
+            cameraData[idIndexBind[id]].showCamera = show_camera;
+        }
+
+        void resetShowIds(){
+            int show_id = 0;
+            for(auto& cd:cameraData)
+                if(*cd.showCamera)
+                    cd.showId = show_id++;
+                else
+                    cd.showId = -1;
+            shCameras = show_id;
         }
 };
 
