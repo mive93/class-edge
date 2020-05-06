@@ -87,7 +87,7 @@ class EdgeViewer : public tk::gui::Viewer {
             for(auto& cd: cameraData)
                 cd.mtxNewFrame  = new std::mutex;
 
-            fontPath = "../data/coolvetica.ttf";
+            fontPath = "../data/monofonto.ttf";
         }
         ~EdgeViewer() {
             // for(auto& cd: cameraData)
@@ -156,15 +156,15 @@ class EdgeViewer : public tk::gui::Viewer {
                     tkDrawRectangle(cd.pose, cd.size, false);
 
                     tkDrawRectangle(tk::common::Vector3<float>{cd.pose.x, cd.pose.y+ d.h/2.0/cd.frame_height*cd.xScale + 0.008*cd.yScale, cd.pose.z+0.001},
-                                    tk::common::Vector3<float>{classesNames[d.cl].size()/float(cd.frame_width)*12*cd.xScale, 0.02*cd.yScale, 0}, 
+                                    tk::common::Vector3<float>{classesNames[d.cl].size()/float(cd.frame_width)*12*cd.xScale, 0.015*cd.yScale, 0}, 
                                     true);
                     tkSetColor(tk::gui::color::WHITE);
                     
 
-                    tkDrawText(classesNames[d.cl],tk::common::Vector3<float>{cd.pose.x - (classesNames[d.cl].size()/float(cd.frame_width)*11*cd.xScale)/2, 
+                    tkDrawText(classesNames[d.cl],tk::common::Vector3<float>{cd.pose.x - (classesNames[d.cl].size()/float(cd.frame_width)*12*cd.xScale)/2, 
                                                 cd.pose.y+ d.h/2.0/cd.frame_height*cd.xScale + 0.002*cd.yScale, cd.pose.z},
                                     tk::common::Vector3<float>{0, 0, 0},
-                                    tk::common::Vector3<float>{0.025*cd.xScale, 0.02*cd.yScale, 0});
+                                    tk::common::Vector3<float>{0.025*cd.xScale, 0.015*cd.yScale, 0});
                 }
                 cd.mtxNewFrame->unlock();
 
