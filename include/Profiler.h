@@ -11,16 +11,16 @@
 #include "tkDNN/utils.h"
 
 #define MAX_MIN 9999999
-#define PROF_INTERVAL 100
 
 namespace edge{
 
 struct stats{
     std::chrono::time_point<std::chrono::system_clock> start;
     std::vector<double> diff;
-    double min  = MAX_MIN;
-    double max  = 0;
-    double sum  = 0;
+    unsigned long int count = 0; //total count
+    double oMin = MAX_MIN;       //overall max
+    double oMax = 0;             //overall min
+    double oAvg = 0;             //overall average
 };
 
 class Profiler{
@@ -31,21 +31,21 @@ public:
     Profiler(std::string profiler_name)  {
         name = profiler_name;
     }
+    
     ~Profiler() {}
     void tick(std::string timer_name){
         timers[timer_name].start = std::chrono::high_resolution_clock::now();
     }
+
     void tock(std::string timer_name){
         if ( timers.find(timer_name) == timers.end() ) 
             FatalError("Timer never started (no tick associated)");
         auto end = std::chrono::high_resolution_clock::now();
         double diff = std::chrono::duration_cast<std::chrono::microseconds>(end-timers[timer_name].start).count();
         timers[timer_name].diff.push_back(diff);
-        timers[timer_name].min = (diff < timers[timer_name].min) ? diff : timers[timer_name].min;
-        timers[timer_name].max = (diff > timers[timer_name].max) ? diff : timers[timer_name].max;
-        timers[timer_name].sum += diff;
     }
-    void printStats(int interval = PROF_INTERVAL){
+
+    void printStats(int interval = 100){
         bool print = false;
         for (auto& t : timers)
             if (t.second.diff.size() == interval) {
@@ -55,23 +55,40 @@ public:
 
         if(print){
             int max_lenght = 0;
-            for (auto const& t : timers)
+            for (const auto& t : timers)
                 if(t.first.size() > max_lenght)
                     max_lenght = t.first.size();
             max_lenght += 10;
-
-            std::cout<<"######################### Profiler "<< name <<" #########################"<<std::endl;
-
+            
+            std::cout<<"######################### Profiler "<< name << " [ "<< interval << " iterations ] #########################"<<std::endl;
+            
+            double cur_sum, cur_min, cur_max;
             for (auto& t : timers)
             {
-                std::cout << t.first << std::fixed << std::setprecision(2)
-                        << std::setfill(' ') << std::setw (max_lenght - t.first.size())
-                        << "\t\tavg(ms): " << t.second.sum / float(t.second.diff.size()) / 1000
-                        << "\tmin(ms): " << t.second.min / 1000
-                        << "\tmax(ms): " << t.second.max / 1000
-                        << std::endl ;
+                cur_sum = 0;
+                cur_max = 0;
+                cur_min = MAX_MIN;
 
-                t.second.sum    = 0;
+                for(const auto& d: t.second.diff){
+                    t.second.oMin = (d < t.second.oMin) ? d : t.second.oMin;
+                    t.second.oMax = (d > t.second.oMax) ? d : t.second.oMax;
+                    t.second.count++;
+
+                    cur_min  = (d < cur_min)  ? d : cur_min;
+                    cur_max  = (d > cur_max)  ? d : cur_max;
+                    cur_sum  += d;
+                }
+                t.second.oAvg = t.second.oAvg * double((t.second.count - t.second.diff.size()))/t.second.count + cur_sum / t.second.count;
+
+                std::cout << t.first << std::fixed  << std::setprecision(2)
+                        << std::setfill(' ')        << std::setw (max_lenght - t.first.size())
+                        << "\t\tavg(ms): "          << cur_sum / double(t.second.diff.size()) / 1000
+                        << "\tmin(ms): "            << cur_min / 1000
+                        << "\tmax(ms): "            << cur_max / 1000
+                        << "\toverall avg(ms): "    << t.second.oAvg / 1000
+                        << "\toverall min(ms): "    << t.second.oMin / 1000
+                        << "\toverall max(ms): "    << t.second.oMax / 1000
+                        << std::endl ;
                 t.second.diff.clear();
             }
         }
