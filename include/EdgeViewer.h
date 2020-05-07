@@ -76,6 +76,8 @@ class EdgeViewer : public tk::gui::Viewer {
             tkViewport2D(viewport_w, viewport_h, viewport_x , viewport_y);
         }
 
+
+
         
     public:
         EdgeViewer(int n_cameras) {
@@ -234,6 +236,22 @@ class EdgeViewer : public tk::gui::Viewer {
                 else
                     cd.showId = -1;
             shCameras = show_id;
+        }
+
+        void tkViewport2D(int width, int height, int x, int y) {
+            float ar = (float)width / (float)height;
+
+            glViewport(x, y, width, height);
+            glOrtho(0, width, 0, height, -1, 1);
+            glLoadIdentity();
+            
+            glMatrixMode( GL_PROJECTION );
+            glLoadIdentity();
+
+            glOrtho(-ar, ar, -1, 1, 1, -1);
+
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
         }
 };
 
