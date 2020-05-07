@@ -104,7 +104,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
         switch(opt){
             case 'h':
                 std::cout<<help<<std::endl;
-                return false;
+                exit(EXIT_SUCCESS);
             case 'i':
                 params_path = optarg;
                 break;
