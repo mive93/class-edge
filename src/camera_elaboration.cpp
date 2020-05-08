@@ -87,7 +87,7 @@ std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, ed
     return lines;
 }
 
-void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::common::GeodeticConverter& geoConv, const int cam_id)
+void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::common::GeodeticConverter& geoConv, const int cam_id, edge::Dataset_t dataset)
 {
     message.objects.clear();
     double latitude, longitude, altitude;
@@ -98,7 +98,8 @@ void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::commo
             i = tr.predList.size() -1;
             geoConv.enu2Geodetic(tr.predList[i].x, tr.predList[i].y, 0, &latitude, &longitude, &altitude);
             //add RoadUser to the message
-            message.objects.push_back(getRoadUser(latitude, longitude, tr.predList[i].vel, tr.predList[i].yaw, tr.cl));
+            if(checkClass(tr.cl, dataset))
+                message.objects.push_back(getRoadUser(latitude, longitude, tr.predList[i].vel, tr.predList[i].yaw, tr.cl, dataset));
         }
     }
     message.cam_idx = cam_id;
@@ -209,7 +210,7 @@ void *elaborateSingleCamera(void *ptr)
             prof.tick("Tracker feeding");
             cur_frame.clear();
             for(auto d:detected){
-                if(d.cl < 6){
+                if(checkClass(d.cl, cam->dataset)){
                     convertCameraPixelsToMapMeters((d.x + d.w / 2)*scale_x, (d.y + d.h)*scale_y, d.cl, *cam, north, east);
                     tracking::obj_m obj;
                     obj.frame   = 0;
@@ -230,7 +231,7 @@ void *elaborateSingleCamera(void *ptr)
 
             prof.tick("Prepare message");
             //send the data if the message is not empty
-            prepareMessage(t, message, cam->geoConv, cam->id);
+            prepareMessage(t, message, cam->geoConv, cam->id, cam->dataset);
             if (!message.objects.empty()){
                 communicator.send_message(&message, cam->portCommunicator);
                 // std::cout<<"message sent!"<<std::endl;

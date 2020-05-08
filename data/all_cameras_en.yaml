@@ -106,7 +106,7 @@ cameras:
     maskFileOrient: !<!> ../data/masks_orient/3840-2160_mask_null.jpg
 net: !<!> yolo3_berkeley_fp16.rt
 width: 960
-classes: 80
+classes: 10
 type: !<!> y
 tif: !<!> ../data/masa_map.tif
 height: 540

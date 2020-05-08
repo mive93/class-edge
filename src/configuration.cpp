@@ -90,7 +90,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
     net             = "yolo3_berkeley_fp32.rt";
     tif_map_path    = "../data/masa_map.tif";
     type            = 'y';
-    n_classes       = 80;
+    n_classes       = 10;
 
     //read values
     std::string params_path         = "";
@@ -285,6 +285,14 @@ std::vector<edge::camera> configure(int argc, char **argv)
 
     //read args from command line
     readParameters(argc, argv, cameras_par, net, type, n_classes, tif_map_path);
+
+    //set dataset
+    edge::Dataset_t dataset;
+    switch(n_classes){
+        case 10: dataset = edge::Dataset_t::BDD; break;
+        case 80: dataset = edge::Dataset_t::COCO; break;
+        default: FatalError("Dataset type not supported yet, check number of classes in parameter file.");
+    }
     
     for(auto cp: cameras_par)
         std::cout<<cp;
@@ -300,6 +308,7 @@ std::vector<edge::camera> configure(int argc, char **argv)
         cameras[i].streamHeight = cameras_par[i].streamHeight;
         cameras[i].show         = cameras_par[i].show;
         cameras[i].invPrjMat    = cameras[i].prjMat.inv();
+        cameras[i].dataset      = dataset;
     }
 
     //initialize neural netwokr for each camera

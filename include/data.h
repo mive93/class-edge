@@ -26,6 +26,8 @@ struct camera_params
     bool                    show = false;    
 };
 
+enum Dataset_t { BDD, COCO, VOC};
+
 struct camera{
     cv::Mat                         prjMat;
     cv::Mat                         invPrjMat;
@@ -42,7 +44,9 @@ struct camera{
     int                             calibHeight;
     int                             streamWidth;
     int                             streamHeight;
+    Dataset_t                       dataset;
     bool                            show = false;
+    
 };
 }
 

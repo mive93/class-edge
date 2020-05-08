@@ -2,7 +2,7 @@
 ---
 net: "yolo3_berkeley_fp16.rt"
 type: "y"
-classes: 80
+classes: 10
 tif: "../data/masa_map.tif"
 width: 960
 height: 540

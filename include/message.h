@@ -9,7 +9,7 @@
 #include "objects.hpp"
 #include "messages.hpp"
 
-#include "message.h"
+#include "data.h"
 
 /*
  * Converts orientation from radians to quantized degrees.
@@ -35,8 +35,9 @@ uint8_t orientationToUint8(const float yaw);
  */
 uint8_t velocityToUint8(const float vel);
 
-Categories classToCategory(const int cl);
-RoadUser getRoadUser(const double latitude, const double longitude, const float velocity, const float orientation, const int cl );
+bool checkClass(const int cl, const edge::Dataset_t dataset);
+Categories classToCategory(const int cl, const edge::Dataset_t dataset);
+RoadUser getRoadUser(const double latitude, const double longitude, const float velocity, const float orientation, const int cl, edge::Dataset_t dataset );
 
 unsigned long long getTimeMs();
 

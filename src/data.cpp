@@ -24,6 +24,7 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c){
     os<< "ipCommunicator \t\t" << c.ipCommunicator<<std::endl;
     os<< "portCommunicator \t" << c.portCommunicator<<std::endl;
     os<< "detNN \t\t\t" << c.detNN<<std::endl;
+    os<< "dataset \t\t" << c.dataset<<std::endl;
     os<< "show \t\t\t" << (int)c.show <<std::endl;
     os<< "calib size \t\t[ " << c.calibWidth<< "x" << c.calibHeight<< " ]"<<std::endl;
     os<< "stream size \t\t[ " << c.streamWidth<< "x" << c.streamHeight<< " ]"<<std::endl;

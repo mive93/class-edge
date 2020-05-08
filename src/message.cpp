@@ -1,44 +1,57 @@
 #include "message.h"
 
-uint8_t orientationToUint8(const float yaw)
-{
+uint8_t orientationToUint8(const float yaw){
     uint8_t orientation = uint8_t((int((yaw * 57.29 + 360)) % 360) * 17 / 24);
     return orientation;
 }
 
-uint8_t velocityToUint8(const float vel)
-{
+uint8_t velocityToUint8(const float vel){
     uint8_t velocity = uint8_t(std::abs(vel * 3.6 * 2));
     return velocity;
 } 
 
-Categories classToCategory(const int cl)
-{
-    Categories cat;
-    switch (cl)
-    {
-    case 0:
-        cat = Categories::C_person;
-        break;
-    case 1:
-        cat = Categories::C_car;
-        break;
-    case 2:
-        cat = Categories::C_car;
-        break;
-    case 3:
-        cat = Categories::C_bus;
-        break;
-    case 4:
-        cat = Categories::C_motorbike;
-        break;
-    case 5:
-        cat = Categories::C_bycicle;
-        break;
+bool checkClass(const int cl, const edge::Dataset_t dataset){
+    
+    switch(dataset){
+        case edge::Dataset_t::BDD:
+            if(cl == 0 || cl == 1 || cl == 2 || cl == 3 || cl == 4 || cl == 5)
+                return true;
+            break;
+        case edge::Dataset_t::COCO:
+            if(cl == 0 || cl == 1 || cl == 2 || cl == 3 || cl == 5 || cl == 7)
+                return true;
+            break;
+        default: 
+        std::cout<<dataset<<std::endl;
+            FatalError("Dataset not supported yet.");
     }
-    return cat;
+    return false;
 }
 
+Categories classToCategory(const int cl, const edge::Dataset_t dataset){
+    Categories cat;
+    if(dataset == edge::Dataset_t::BDD)
+        switch (cl){
+        case 0: cat = Categories::C_person;     break;
+        case 1: cat = Categories::C_car;        break;
+        case 2: cat = Categories::C_car;        break;
+        case 3: cat = Categories::C_bus;        break;
+        case 4: cat = Categories::C_motorbike;  break;
+        case 5: cat = Categories::C_bycicle;    break;
+        }
+    else if (dataset == edge::Dataset_t::COCO)
+        switch (cl){
+        case 0: cat = Categories::C_person;     break;
+        case 1: cat = Categories::C_bycicle;    break;
+        case 2: cat = Categories::C_car;        break;
+        case 3: cat = Categories::C_motorbike;  break;
+        case 5: cat = Categories::C_bus;        break;
+        case 7: cat = Categories::C_car;        break;
+        }
+    else
+        FatalError("Dataset not supported yet.");
+    return cat;
+}
 std::ostream& operator<<(std::ostream& os, const RoadUser& o){
     os<<std::setprecision(20);
     os<<"----------------------------------------------------\n";
@@ -51,14 +64,13 @@ std::ostream& operator<<(std::ostream& os, const RoadUser& o){
     return os;
 }
 
-RoadUser getRoadUser(const double latitude, const double longitude, const float velocity, const float orientation, const int cl )
-{
+RoadUser getRoadUser(const double latitude, const double longitude, const float velocity, const float orientation, const int cl , edge::Dataset_t dataset){
     RoadUser r;
     r.latitude = static_cast<float>(latitude);
     r.longitude = static_cast<float>(longitude);
     r.speed = velocityToUint8(velocity);
     r.orientation = orientationToUint8(orientation);
-    r.category = classToCategory(cl);
+    r.category = classToCategory(cl, dataset);
     return r;
 }
 
