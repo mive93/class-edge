@@ -264,9 +264,14 @@ void readCalibrationMatrix(const std::string& path, cv::Mat& calib_mat, cv::Mat&
 
 void readTiff(const std::string& path, double *adfGeoTransform)
 {
-    if(!fileExist(path.c_str()))
-        FatalError("Tif map given does not exit. Needed for tracker");
-    
+    if(!fileExist(path.c_str())){
+        std::cout<<path<<std::endl;
+        if(path == "../data/masa_map.tif")
+            system("wget https://cloud.hipert.unimore.it/s/rWrdd2ygKF48eGp/download -O ../data/masa_map.tif");
+        if(!fileExist(path.c_str()))
+            FatalError("Tif map given does not exit. Needed for tracker.");
+    }
+
     GDALDataset *poDataset;
     GDALAllRegister();
     poDataset = (GDALDataset *)GDALOpen(path.c_str(), GA_ReadOnly);
