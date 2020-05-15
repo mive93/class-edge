@@ -10,8 +10,7 @@
 #include "undistort.h"
 #include "configuration.h"
 
-cv::Mat disparityFrame(const cv::Mat& frame, const bool first_iteration, cv::Mat& canny,cv::Mat& pre_canny,cv::Mat& canny_RGB,cv::Mat& pre_canny_RGB)
-{
+cv::Mat getDisparityCanny(const cv::Mat& frame, const bool first_iteration, cv::Mat& canny,cv::Mat& pre_canny,cv::Mat& canny_RGB,cv::Mat& pre_canny_RGB){
     cv::Canny(frame, canny, 100, 100 * 2);
     cv::Mat disparity = canny.clone();
     if (!first_iteration){
@@ -21,6 +20,17 @@ cv::Mat disparityFrame(const cv::Mat& frame, const bool first_iteration, cv::Mat
     }
     pre_canny = canny.clone();
 
+    return disparity;
+}
+
+cv::Mat getDisparityOpticalFlow(const cv::Mat& frame, cv::Mat& old_frame, const bool& first_iteration){
+    if(first_iteration){
+        old_frame = frame.clone();
+        old_frame.setTo(cv::Scalar(0,0,0));
+    }
+
+    cv::Mat disparity = old_frame.clone() - frame.clone();
+    old_frame = frame.clone();
     return disparity;
 }
 
@@ -106,7 +116,7 @@ int main(int argc, char *argv[]) {
     roi.setTo(cv::Scalar(255,255,255));
 
     //disparity
-    cv::Mat canny, pre_canny, canny_RGB, pre_canny_RGB, disparity;
+    cv::Mat canny, pre_canny, canny_RGB, pre_canny_RGB, disparityCanny, old_frame, disparityOpticalFlow;
 
     while(gRun) {
         
@@ -144,7 +154,8 @@ int main(int argc, char *argv[]) {
         batch_frame.push_back(undistort);
 
         //get disparity frame
-        disparity = disparityFrame(undistort,first_iteration, canny, pre_canny, canny_RGB, pre_canny_RGB);
+        // disparityCanny = getDisparityCanny(undistort,first_iteration, canny, pre_canny, canny_RGB, pre_canny_RGB);
+        disparityOpticalFlow = getDisparityOpticalFlow(undistort, old_frame, first_iteration);
         
         //inference
         batch_dnn_input.clear();
@@ -155,7 +166,8 @@ int main(int argc, char *argv[]) {
         //visualization
         if(show){
             cv::imshow("detection", batch_frame[0]);
-            cv::imshow("disparity", disparity);
+            // cv::imshow("disparity Canny ", disparityCanny);
+            cv::imshow("disparity Optical Flow ", disparityOpticalFlow);
 
             drawROIs(roi, detNN->detected);
             cv::imshow("roi", roi);
