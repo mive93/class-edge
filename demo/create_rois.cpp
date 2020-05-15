@@ -9,6 +9,13 @@
 #include "tkDNN/Yolo3Detection.h"
 #include "undistort.h"
 #include "configuration.h"
+#include "Profiler.h"
+
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/videoio.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/video.hpp>
 
 cv::Mat getDisparityCanny(const cv::Mat& frame, const bool first_iteration, cv::Mat& canny,cv::Mat& pre_canny,cv::Mat& canny_RGB,cv::Mat& pre_canny_RGB){
     cv::Canny(frame, canny, 100, 100 * 2);
@@ -35,6 +42,31 @@ cv::Mat getDisparityOpticalFlow(const cv::Mat& frame, cv::Mat& old_frame, const 
     cv::Mat disparity_grey;
     cv::cvtColor(disparity, disparity_grey, cv::COLOR_BGR2GRAY);
     return disparity_grey;
+}
+
+void getBackgroundSuppression(const cv::Mat& frame_in, cv::Mat& frame_out, cv::Ptr<cv::BackgroundSubtractor> pBackSub) {
+    pBackSub->apply(frame_in, frame_out);
+}
+
+std::vector<cv::Rect> getBatchingFromBackground(const cv::Mat& frame_in, cv::Mat& back_mask, cv::Mat& frame_out) {
+    std::vector<std::vector<cv::Point>> contours;
+    findContours(back_mask.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+
+    frame_out = frame_in.clone();
+    std::vector<cv::Rect> batch_info;
+    for (int i = 0; i < contours.size(); ++i)
+    {
+        // Remove small blobs
+        if (contours[i].size() < 100)
+        {
+            continue;
+        }
+
+        cv::Rect box = cv::boundingRect(contours[i]);
+        batch_info.push_back(box);
+        rectangle(frame_out, box, cv::Scalar(0,255,0), 1);
+    }
+    return batch_info;
 }
 
 void drawROIs(cv::Mat& frame, std::vector<tk::dnn::box>& detected) {
@@ -67,6 +99,13 @@ int main(int argc, char *argv[]) {
     int o_width, o_height;
     readCalibrationMatrix("../data/calib_cameras/"+camera_id+".params", calib_mat, dist_coeff, o_width, o_height);
 
+    std::string algo = "OTHER";  //or MOG2
+    //create Background Subtractor objects
+    cv::Ptr<cv::BackgroundSubtractor> pBackSub;
+    if (algo == "MOG2")
+        pBackSub = cv::createBackgroundSubtractorMOG2();
+    else
+        pBackSub = cv::createBackgroundSubtractorKNN();
     //video capture
     bool gRun = true;
     cv::VideoCapture cap("../data/"+camera_id+".mp4", cv::CAP_FFMPEG);
@@ -81,7 +120,7 @@ int main(int argc, char *argv[]) {
     tk::dnn::CenternetDetection cnet;
     tk::dnn::MobilenetDetection mbnet;  
     tk::dnn::DetectionNN *detNN;  
-
+    edge::Profiler prof("rois");
     switch(ntype){
         case 'y':
             detNN = &yolo;
@@ -119,17 +158,23 @@ int main(int argc, char *argv[]) {
     roi.setTo(cv::Scalar(255,255,255));
 
     //disparity
-    cv::Mat canny, pre_canny, canny_RGB, pre_canny_RGB, disparityCanny, old_frame, disparityOpticalFlow;
-
+    cv::Mat canny, pre_canny, canny_RGB, pre_canny_RGB, disparityCanny, old_frame, disparityOpticalFlow, backsup, backBBres;
+    std::vector<cv::Rect> batchinfo;
+    
     while(gRun) {
-        
+        prof.tick("total time");
+        prof.tick("get frame");
         //frame reading
         cap >> frame; 
         if(!frame.data) break;
-        
+        prof.tock("get frame");
+
+        prof.tick("resize");
         //resize
         cv::resize (frame, resized_frame, cv::Size(new_width, new_height)); 
+        prof.tock("resize");
 
+        prof.tick("undistort");
         //undistort        
         if (first_iteration){
             calib_mat.at<double>(0,0)*=  double(new_width) / double(o_width);
@@ -155,17 +200,30 @@ int main(int argc, char *argv[]) {
 
         batch_frame.clear();
         batch_frame.push_back(undistort);
-
+        prof.tock("undistort");
+        
+        prof.tick("disparity");
         //get disparity frame
         // disparityCanny = getDisparityCanny(undistort,first_iteration, canny, pre_canny, canny_RGB, pre_canny_RGB);
         disparityOpticalFlow = getDisparityOpticalFlow(undistort, old_frame, first_iteration);
+        prof.tock("disparity");
         
+        prof.tick("background");
+        getBackgroundSuppression(undistort, backsup, pBackSub);
+        batchinfo.clear();
+        batchinfo = getBatchingFromBackground(undistort, backsup, backBBres);
+        prof.tock("background");
+        prof.tick("inference");
         //inference
         batch_dnn_input.clear();
         batch_dnn_input.push_back(undistort.clone());
         detNN->update(batch_dnn_input);
+        prof.tock("inference");
+        prof.tick("draw");
         detNN->draw(batch_frame);
-
+        prof.tock("draw");
+        
+        prof.tick("show");
         //visualization
         if(show){
             cv::imshow("detection", batch_frame[0]);
@@ -174,12 +232,18 @@ int main(int argc, char *argv[]) {
 
             drawROIs(roi, detNN->detected);
             cv::imshow("roi", roi);
-
+            
+            cv::imshow("back", backsup);
+            
+            cv::imshow("box", backBBres);
+            
             cv::waitKey(1);
         }
+        prof.tock("show");
 
         if(first_iteration)
             first_iteration = false;
+        prof.tock("total time");
     }
 
     imwrite( "roi_"+camera_id+".jpg", roi);
