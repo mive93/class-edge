@@ -31,7 +31,10 @@ cv::Mat getDisparityOpticalFlow(const cv::Mat& frame, cv::Mat& old_frame, const 
 
     cv::Mat disparity = old_frame.clone() - frame.clone();
     old_frame = frame.clone();
-    return disparity;
+
+    cv::Mat disparity_grey;
+    cv::cvtColor(disparity, disparity_grey, cv::COLOR_BGR2GRAY);
+    return disparity_grey;
 }
 
 void drawROIs(cv::Mat& frame, std::vector<tk::dnn::box>& detected) {
