@@ -68,3 +68,6 @@ target_link_libraries(encrypt class-edge)
 
 add_executable(test_undistort demo/test_undistort.cpp)
 target_link_libraries(test_undistort class-edge)
+
+add_executable(create_rois demo/create_rois.cpp)
+target_link_libraries(create_rois class-edge)
