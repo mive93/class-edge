@@ -17,6 +17,8 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
 
+#define MAX_BATCHES 32
+
 cv::Mat getDisparityCanny(const cv::Mat& frame, const bool first_iteration, cv::Mat& canny,cv::Mat& pre_canny,cv::Mat& canny_RGB,cv::Mat& pre_canny_RGB){
     cv::Canny(frame, canny, 100, 100 * 2);
     cv::Mat disparity = canny.clone();
@@ -44,29 +46,41 @@ cv::Mat getDisparityOpticalFlow(const cv::Mat& frame, cv::Mat& old_frame, const 
     return disparity_grey;
 }
 
-void getBackgroundSuppression(const cv::Mat& frame_in, cv::Mat& frame_out, cv::Ptr<cv::BackgroundSubtractor> pBackSub) {
-    pBackSub->apply(frame_in, frame_out);
+void suppressBackground(const cv::Mat& frame_in, cv::Mat& frame_out, cv::Ptr<cv::BackgroundSubtractor> bg_subtractor) {
+    bg_subtractor->apply(frame_in, frame_out);
 }
 
-std::vector<cv::Rect> getBatchingFromBackground(const cv::Mat& frame_in, cv::Mat& back_mask, cv::Mat& frame_out) {
+bool sortByRoiSize(const std::pair<cv::Mat, cv::Rect> &a, const std::pair<cv::Mat, cv::Rect> &b) { 
+    return (a.first.rows*a.first.cols > b.first.rows*b.first.cols); 
+} 
+
+void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::Mat& frame_out, std::vector<cv::Mat>& batches, std::vector<cv::Rect>& or_rects) {    
+    //find clusters of points given and image with only moving objects
     std::vector<std::vector<cv::Point>> contours;
     findContours(back_mask.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
 
+    //for each cluster create a box
     frame_out = frame_in.clone();
-    std::vector<cv::Rect> batch_info;
-    for (int i = 0; i < contours.size(); ++i)
-    {
+    std::vector<std::pair<cv::Mat, cv::Rect>> roi_contours;
+    for (int i = 0; i < contours.size(); ++i){
         // Remove small blobs
-        if (contours[i].size() < 100)
-        {
-            continue;
-        }
-
+        if (contours[i].size() < 100) continue;
+        //create box
         cv::Rect box = cv::boundingRect(contours[i]);
-        batch_info.push_back(box);
-        rectangle(frame_out, box, cv::Scalar(0,255,0), 1);
+        //extract box from original image
+        cv::Mat roi = cv::Mat(frame_in,box);
+        roi_contours.push_back(std::pair<cv::Mat, cv::Rect>(roi, box));
+        //draw box on the original image
+        rectangle(frame_out, box, cv::Scalar(0,0,255), 2);
     }
-    return batch_info;
+    //sort boxes for decreasing size
+    std::sort(roi_contours.begin(), roi_contours.end(), sortByRoiSize); 
+
+    //select only first MAX_BATCHES bigger boxes
+    for(int i=0; i<roi_contours.size() && i<MAX_BATCHES; ++i){
+        batches.push_back(roi_contours[i].first);
+        or_rects.push_back(roi_contours[i].second);
+    }
 }
 
 void drawROIs(cv::Mat& frame, std::vector<tk::dnn::box>& detected) {
@@ -89,6 +103,39 @@ void drawROIs(cv::Mat& frame, std::vector<tk::dnn::box>& detected) {
     }
 }
 
+void drawBatchesDetOnOriginalFrame(cv::Mat & frame, const std::vector<std::vector<tk::dnn::box>>& batchDetected, const std::vector<cv::Rect>& or_rects, std::vector<std::string>& classesNames, cv::Scalar* colors){
+    tk::dnn::box b;
+    int x0, w, x1, y0, h, y1;
+    int objClass;
+    std::string det_class;
+
+    int baseline = 0;
+    float font_scale = 0.5;
+    int thickness = 2;   
+
+    for(int bi=0; bi<batchDetected.size(); ++bi){
+        // draw dets
+        for(int i=0; i<batchDetected[bi].size(); i++) { 
+            b           = batchDetected[bi][i];
+            b.x         = b.x+or_rects[bi].x;
+            b.y         = b.y+or_rects[bi].y;
+            x0   		= b.x;
+            x1   		= b.x + b.w;
+            y0   		= b.y;
+            y1   		= b.y + b.h;
+            det_class 	= classesNames[b.cl];
+
+            // draw rectangle
+            cv::rectangle(frame, cv::Point(x0, y0), cv::Point(x1, y1), colors[b.cl], 2); 
+
+            // draw label
+            cv::Size text_size = getTextSize(det_class, cv::FONT_HERSHEY_SIMPLEX, font_scale, thickness, &baseline);
+            cv::rectangle(frame, cv::Point(x0, y0), cv::Point((x0 + text_size.width - 2), (y0 - text_size.height - 2)), colors[b.cl], -1);                      
+            cv::putText(frame, det_class, cv::Point(x0, (y0 - (baseline / 2))), cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(255, 255, 255), thickness);
+        }
+    }
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -99,28 +146,35 @@ int main(int argc, char *argv[]) {
     int o_width, o_height;
     readCalibrationMatrix("../data/calib_cameras/"+camera_id+".params", calib_mat, dist_coeff, o_width, o_height);
 
+    //background subtractor
     std::string algo = "OTHER";  //or MOG2
-    //create Background Subtractor objects
-    cv::Ptr<cv::BackgroundSubtractor> pBackSub;
+    cv::Ptr<cv::BackgroundSubtractor> bg_subtractor;
     if (algo == "MOG2")
-        pBackSub = cv::createBackgroundSubtractorMOG2();
+        bg_subtractor = cv::createBackgroundSubtractorMOG2();
     else
-        pBackSub = cv::createBackgroundSubtractorKNN();
+        bg_subtractor = cv::createBackgroundSubtractorKNN();
+
     //video capture
     bool gRun = true;
     cv::VideoCapture cap("../data/"+camera_id+".mp4", cv::CAP_FFMPEG);
     if(!cap.isOpened())
         gRun = false; 
 
+    //roi batches
+    std::vector<cv::Mat> batches;
+    std::vector<cv::Rect> or_rects;
+    bool use_batches = true;
+
     //network
-    std::string net = "yolo3_berkeley_fp32.rt";
+    std::string net = "yolo3_512_fp32.rt";
+    if(!use_batches) net = "yolo3_berkeley_fp32.rt";
     char ntype = 'y';
     int n_classes = 80;
     tk::dnn::Yolo3Detection yolo;
     tk::dnn::CenternetDetection cnet;
     tk::dnn::MobilenetDetection mbnet;  
     tk::dnn::DetectionNN *detNN;  
-    edge::Profiler prof("rois");
+    
     switch(ntype){
         case 'y':
             detNN = &yolo;
@@ -135,7 +189,7 @@ int main(int argc, char *argv[]) {
         default:
         FatalError("Network type not allowed (3rd parameter)\n");
     }
-    detNN->init(net, n_classes);
+    detNN->init(net, n_classes, MAX_BATCHES);
 
     //visualization
     bool show = true;
@@ -158,24 +212,39 @@ int main(int argc, char *argv[]) {
     roi.setTo(cv::Scalar(255,255,255));
 
     //disparity
-    cv::Mat canny, pre_canny, canny_RGB, pre_canny_RGB, disparityCanny, old_frame, disparityOpticalFlow, backsup, backBBres;
-    std::vector<cv::Rect> batchinfo;
+    cv::Mat canny, pre_canny, canny_RGB, pre_canny_RGB, disparity_canny;
+    cv::Mat old_frame, disparity_optical_flow;
+    cv::Mat bg_suppressed, fg_boxes;
     
+    //draw
+    cv::Scalar colors[256];
+    for(int c=0; c<n_classes; ++c) {
+        int offset = c*123457 % n_classes;
+        float r = getColor(2, offset, n_classes);
+        float g = getColor(1, offset, n_classes);
+        float b = getColor(0, offset, n_classes);
+        colors[c] = cv::Scalar(int(255.0*b), int(255.0*g), int(255.0*r));
+    }
+    
+    //profiler
+    edge::Profiler prof("rois");
+
     while(gRun) {
         prof.tick("total time");
-        prof.tick("get frame");
+
         //frame reading
+        prof.tick("get frame");
         cap >> frame; 
         if(!frame.data) break;
         prof.tock("get frame");
 
-        prof.tick("resize");
         //resize
+        prof.tick("resize");
         cv::resize (frame, resized_frame, cv::Size(new_width, new_height)); 
         prof.tock("resize");
 
-        prof.tick("undistort");
         //undistort        
+        prof.tick("undistort");
         if (first_iteration){
             calib_mat.at<double>(0,0)*=  double(new_width) / double(o_width);
             calib_mat.at<double>(0,2)*=  double(new_width) / double(o_width);
@@ -202,51 +271,92 @@ int main(int argc, char *argv[]) {
         batch_frame.push_back(undistort);
         prof.tock("undistort");
         
-        prof.tick("disparity");
         //get disparity frame
-        // disparityCanny = getDisparityCanny(undistort,first_iteration, canny, pre_canny, canny_RGB, pre_canny_RGB);
-        disparityOpticalFlow = getDisparityOpticalFlow(undistort, old_frame, first_iteration);
-        prof.tock("disparity");
-        
-        prof.tick("background");
-        getBackgroundSuppression(undistort, backsup, pBackSub);
-        batchinfo.clear();
-        batchinfo = getBatchingFromBackground(undistort, backsup, backBBres);
-        prof.tock("background");
-        prof.tick("inference");
-        //inference
-        batch_dnn_input.clear();
-        batch_dnn_input.push_back(undistort.clone());
-        detNN->update(batch_dnn_input);
-        prof.tock("inference");
-        prof.tick("draw");
-        detNN->draw(batch_frame);
-        prof.tock("draw");
-        
-        prof.tick("show");
-        //visualization
-        if(show){
-            cv::imshow("detection", batch_frame[0]);
-            // cv::imshow("disparity Canny ", disparityCanny);
-            cv::imshow("disparity Optical Flow ", disparityOpticalFlow);
+        // prof.tick("disparity");
+        // disparity_canny = getDisparityCanny(undistort,first_iteration, canny, pre_canny, canny_RGB, pre_canny_RGB);
+        // disparity_optical_flow = getDisparityOpticalFlow(undistort, old_frame, first_iteration);
+        // prof.tock("disparity");
 
-            drawROIs(roi, detNN->detected);
-            cv::imshow("roi", roi);
+        prof.tick("det process");
+        if(use_batches){
+            //background suppression
+            prof.tick("background");
+            suppressBackground(undistort, bg_suppressed, bg_subtractor);
+            prof.tock("background");
+
+            //boxes extraction
+            prof.tick("extract boxes");
+            batches.clear();
+            or_rects.clear();
+            getBatchesFromMovingObjs(undistort, bg_suppressed, fg_boxes, batches, or_rects);
+            prof.tock("extract boxes");
+
+            //inference
+            prof.tick("inference");
+            batch_dnn_input.clear();
+            for(auto b:batches)
+                batch_dnn_input.push_back(b.clone());
+            detNN->update(batch_dnn_input, batch_dnn_input.size());
+            prof.tock("inference");
             
-            cv::imshow("back", backsup);
+            //draw boxes
+            prof.tick("draw");
+            drawBatchesDetOnOriginalFrame(batch_frame[0], detNN->batchDetected, or_rects, detNN->classesNames, colors);
+            prof.tock("draw");
+        }
+        else{
+            //inference
+            prof.tick("inference");
+            batch_dnn_input.clear();
+            batch_dnn_input.push_back(undistort.clone());
+            detNN->update(batch_dnn_input, batch_dnn_input.size());
+            prof.tock("inference");
             
-            cv::imshow("box", backBBres);
-            
+            //draw boxes
+            prof.tick("draw");
+            detNN->draw(batch_frame);
+            prof.tock("draw");
+        }
+        prof.tock("det process");
+        
+        //visualization
+        prof.tick("show");
+        if(show){
+
+            // //visualize each batch 
+            // detNN->draw(batches);
+            // for(auto& b:batches){
+            //     if(b.rows*b.cols > 3000){
+            //     cv::imshow("batch", b);
+            //     cv::waitKey(0);
+            //     }
+            // }
+
+            // //visualize canny or optical flow
+            // cv::imshow("disparity Canny ", disparity_canny);
+            // cv::imshow("disparity Optical Flow ", disparity_optical_flow);
+
+            // // visualize black ROIs on white frane
+            // drawROIs(roi, detNN->detected);
+            // cv::imshow("roi", roi);
+
+            // // viosualize baground suppression and extracted boxes on frame
+            // cv::imshow("Background Suppression", bg_suppressed);
+            // cv::imshow("boxes of foreground objects", fg_boxes);
+
+            cv::imshow("detection", batch_frame[0]);
             cv::waitKey(1);
         }
         prof.tock("show");
 
         if(first_iteration)
             first_iteration = false;
+
         prof.tock("total time");
+        prof.printStats(500);
     }
 
-    imwrite( "roi_"+camera_id+".jpg", roi);
+    // imwrite( "roi_"+camera_id+".jpg", roi);
     return 0;
 }
 
