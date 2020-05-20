@@ -16,6 +16,8 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
+#include "BackGroundSuppression1.h"
+#include "BackGroundSuppression2.h"
 
 #define MAX_BATCHES 32
 
@@ -204,7 +206,7 @@ int main(int argc, char *argv[]) {
 
     //frame capture
     cv::Mat frame;
-    std::vector<cv::Mat> batch_frame;
+    std::vector<cv::Mat> batch_frame, batch_frame2;
     std::vector<cv::Mat> batch_dnn_input;
 
     //roi
@@ -228,7 +230,21 @@ int main(int argc, char *argv[]) {
     
     //profiler
     edge::Profiler prof("rois");
+    cv::Mat backsupp;
+    
+    edge::BackGroundSuppression1 bs1(algo, new_width, new_height);
+    edge::BackGroundSuppression2 bs2(algo, new_width, new_height, n_classes);
 
+    /* mode -----
+    'n' --> the normal detection
+    'b' --> use batches 
+    'c' --> collage mode
+    'd' --> dark mode: set the background with black color
+    */
+    char mode = 'b';
+    if(use_batches && mode != 'b' || !use_batches && mode=='b') {
+        std::cout<<"ERROR: check use_batches and the mode\n";
+    }
     while(gRun) {
         prof.tick("total time");
 
@@ -268,7 +284,7 @@ int main(int argc, char *argv[]) {
         checkCuda( cudaMemcpy((uint8_t*)undistort.data , d_output, resized_frame.cols*resized_frame.rows*resized_frame.channels()*sizeof(uint8_t), cudaMemcpyDeviceToHost));
 
         batch_frame.clear();
-        batch_frame.push_back(undistort);
+        batch_frame.push_back(undistort.clone());
         prof.tock("undistort");
         
         //get disparity frame
@@ -278,7 +294,9 @@ int main(int argc, char *argv[]) {
         // prof.tock("disparity");
 
         prof.tick("det process");
-        if(use_batches){
+        switch (mode)
+        {
+        case 'b':
             //background suppression
             prof.tick("background");
             suppressBackground(undistort, bg_suppressed, bg_subtractor);
@@ -303,8 +321,8 @@ int main(int argc, char *argv[]) {
             prof.tick("draw");
             drawBatchesDetOnOriginalFrame(batch_frame[0], detNN->batchDetected, or_rects, detNN->classesNames, colors);
             prof.tock("draw");
-        }
-        else{
+            break;
+        case 'n':
             //inference
             prof.tick("inference");
             batch_dnn_input.clear();
@@ -316,9 +334,48 @@ int main(int argc, char *argv[]) {
             prof.tick("draw");
             detNN->draw(batch_frame);
             prof.tock("draw");
+            break;
+        case 'c':
+            prof.tick("backgroundsuppression2");
+            backsupp = bs2.update(undistort);
+            prof.tock("backgroundsuppression2");
+            prof.tick("inference");
+            //inference
+            batch_frame2.clear();
+            batch_frame2.push_back(backsupp.clone());
+            batch_dnn_input.clear();
+            batch_dnn_input.push_back(backsupp.clone());
+            detNN->update(batch_dnn_input, batch_dnn_input.size());
+            prof.tock("inference");
+            prof.tick("draw");
+            detNN->draw(batch_frame2);
+            prof.tock("draw");
+            prof.tick("draw-2");
+            bs2.drawTiles(batch_frame, detNN->batchDetected, detNN->classesNames);
+            prof.tock("draw-2");
+            break;
+        case 'd':
+            prof.tick("backgroundsuppression1");
+            backsupp = bs1.update(undistort);
+            prof.tock("backgroundsuppression1");
+            prof.tick("inference");
+            //inference
+            batch_frame2.clear();
+            batch_frame2.push_back(backsupp.clone());
+            batch_dnn_input.clear();
+            batch_dnn_input.push_back(backsupp.clone());
+            detNN->update(batch_dnn_input, batch_dnn_input.size());
+            prof.tock("inference");
+            prof.tick("draw");
+            detNN->draw(batch_frame2);
+            detNN->draw(batch_frame);
+            prof.tock("draw");
+            break;
+        default:
+            break;
         }
         prof.tock("det process");
-        
+
         //visualization
         prof.tick("show");
         if(show){
@@ -343,8 +400,17 @@ int main(int argc, char *argv[]) {
             // // viosualize baground suppression and extracted boxes on frame
             // cv::imshow("Background Suppression", bg_suppressed);
             // cv::imshow("boxes of foreground objects", fg_boxes);
-
+            switch (mode)
+            {
+            case 'c':
+            case 'd':
+                cv::imshow("backsupp", backsupp);
+                cv::imshow("backsupp det", batch_frame2[0]);
+            default:
+                break;
+            }
             cv::imshow("detection", batch_frame[0]);
+
             cv::waitKey(1);
         }
         prof.tock("show");
