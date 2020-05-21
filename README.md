@@ -13,6 +13,7 @@ This projects depends on:
   * yaml-cpp 0.5.2 
   * Eigen
   * GDal
+  * cmake v3.15
 
 ```
 sudo apt-get install -y libeigen3-dev \
@@ -73,44 +74,3 @@ Then just run
 where
   * ```<params-no-enc>``` is the input parametrs file (yaml)
   * ```<params-enc>``` is the output parametrs file (yaml) with all the input encrypted with the password the program will ask for.
-
-
-## How to remove tkDNN prints
-Go to tkDNN/include/tkDNN/DetectionNN.h and change the update function with this: 
-```
-          void update(cv::Mat &frame, bool save_times=false, std::ofstream *times=nullptr){
-            if(!frame.data)
-                FatalError("No image data feed to detection");
-
-            if(save_times && times==nullptr)
-                FatalError("save_times set to true, but no valid ofstream given");
-
-            originalSize = frame.size();
-            // printCenteredTitle(" TENSORRT detection ", '=', 30); 
-            {
-                // TIMER_START
-                preprocess(frame);
-                // TIMER_STOP
-                // if(save_times) *times<<t_ns<<";";
-            }
-
-            //do inference
-            tk::dnn::dataDim_t dim = netRT->input_dim;
-            {
-                // dim.print();
-                // TIMER_START
-                netRT->infer(dim, input_d);
-                // TIMER_STOP
-                // dim.print();
-                // stats.push_back(t_ns);
-                // if(save_times) *times<<t_ns<<";";
-            }
-
-            {
-                // TIMER_START
-                postprocess();
-                // TIMER_STOP?
-                // if(save_times) *times<<t_ns<<"\n";
-            }
-        }  
-```
