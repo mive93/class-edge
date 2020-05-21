@@ -46,8 +46,15 @@ cv::Mat getDisparityOpticalFlow(const cv::Mat& frame, cv::Mat& old_frame, const 
     return disparity_grey;
 }
 
-void suppressBackground(const cv::Mat& frame_in, cv::Mat& frame_out, cv::Ptr<cv::BackgroundSubtractor> bg_subtractor) {
-    bg_subtractor->apply(frame_in, frame_out);
+void suppressBackground(const cv::Mat& frame_in, cv::Mat& frame_out, cv::Ptr<cv::BackgroundSubtractor> bg_subtractor, const bool on_gpu=true) {
+    if (on_gpu){
+        cv::cuda::GpuMat in, out;
+        in.upload(frame_in);
+        bg_subtractor->apply(in, out);
+        out.download(frame_out);
+    }
+    else
+        bg_subtractor->apply(frame_in, frame_out);
 }
 
 bool sortByRoiSize(const std::pair<cv::Mat, cv::Rect> &a, const std::pair<cv::Mat, cv::Rect> &b) { 
@@ -147,10 +154,10 @@ int main(int argc, char *argv[]) {
     readCalibrationMatrix("../data/calib_cameras/"+camera_id+".params", calib_mat, dist_coeff, o_width, o_height);
 
     //background subtractor
-    std::string algo = "OTHER";  //or MOG2
+    bool on_gpu = true;
     cv::Ptr<cv::BackgroundSubtractor> bg_subtractor;
-    if (algo == "MOG2")
-        bg_subtractor = cv::createBackgroundSubtractorMOG2();
+    if (on_gpu)
+        bg_subtractor = cv::cuda::createBackgroundSubtractorMOG2();
     else
         bg_subtractor = cv::createBackgroundSubtractorKNN();
 
@@ -281,7 +288,7 @@ int main(int argc, char *argv[]) {
         if(use_batches){
             //background suppression
             prof.tick("background");
-            suppressBackground(undistort, bg_suppressed, bg_subtractor);
+            suppressBackground(undistort, bg_suppressed, bg_subtractor,on_gpu);
             prof.tock("background");
 
             //boxes extraction
