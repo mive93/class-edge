@@ -239,6 +239,7 @@ int main(int argc, char *argv[]) {
     edge::Profiler prof("rois");
     cv::Mat backsupp;
     
+    std::string algo = "OTHER";
     edge::BackGroundSuppression1 bs1(algo, new_width, new_height);
     edge::BackGroundSuppression2 bs2(algo, new_width, new_height, n_classes);
 
@@ -343,17 +344,21 @@ int main(int argc, char *argv[]) {
             prof.tock("draw");
             break;
         case 'c':
+            //background suppression
             prof.tick("backgroundsuppression2");
             backsupp = bs2.update(undistort);
             prof.tock("backgroundsuppression2");
-            prof.tick("inference");
+            
             //inference
+            prof.tick("inference");
             batch_frame2.clear();
             batch_frame2.push_back(backsupp.clone());
             batch_dnn_input.clear();
             batch_dnn_input.push_back(backsupp.clone());
             detNN->update(batch_dnn_input, batch_dnn_input.size());
             prof.tock("inference");
+
+            //draw boxes
             prof.tick("draw");
             detNN->draw(batch_frame2);
             prof.tock("draw");
@@ -362,17 +367,21 @@ int main(int argc, char *argv[]) {
             prof.tock("draw-2");
             break;
         case 'd':
+            //background suppression
             prof.tick("backgroundsuppression1");
             backsupp = bs1.update(undistort);
             prof.tock("backgroundsuppression1");
-            prof.tick("inference");
+
             //inference
+            prof.tick("inference");
             batch_frame2.clear();
             batch_frame2.push_back(backsupp.clone());
             batch_dnn_input.clear();
             batch_dnn_input.push_back(backsupp.clone());
             detNN->update(batch_dnn_input, batch_dnn_input.size());
             prof.tock("inference");
+
+            //draw boxes
             prof.tick("draw");
             detNN->draw(batch_frame2);
             detNN->draw(batch_frame);
