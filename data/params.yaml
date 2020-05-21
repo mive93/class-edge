@@ -23,7 +23,7 @@ cameras:
     maskFileOrient: "../data/masks_orient/1920-1080_mask_null.jpg"
   - id: 20939
     encrypted: 0
-    input: "../data/ffmpeg_20939.mp4"
+    input: "../data/20939.mp4"
     pmatrix: "../data/pmat_new/pmat_07-03-20939_20p.txt"
     maskfile: "../data/masks/20939_mask.jpg"
     cameraCalib: "../data/calib_cameras/20939.params"
@@ -37,21 +37,21 @@ cameras:
     maskFileOrient: "../data/masks_orient/3072-1728_mask_null.jpg"
   - id: 20940
     encrypted: 0
-    input: "../data/ffmpeg_20940.mp4"
+    input: "../data/20940.mp4"
     pmatrix: "../data/pmat_new/pmat_07-03-20940_10p.txt"
     maskfile: "../data/masks/20940_mask.jpg"
     cameraCalib: "../data/calib_cameras/20940.params"
     maskFileOrient: "../data/masks_orient/3072-1728_mask_null.jpg"
   - id: 6310
     encrypted: 0
-    input: "../data/ffmpeg_6310.mp4"
+    input: "../data/6310.mp4"
     pmatrix: "../data/pmat_new/pmat_07-03-6310_10p.txt"
     maskfile: "../data/masks/6310_mask.jpg"
     cameraCalib: "../data/calib_cameras/6310.params"
     maskFileOrient: "../data/masks_orient/3072-1728_mask_null.jpg"
   - id: 634
     encrypted: 0
-    input: "../data/ffmpeg_634.mp4"
+    input: "../data/634.mp4"
     pmatrix: "../data/pmat_new/pmat_07-03-634_10p.txt"
     maskfile: "../data/masks/634_mask.jpg"
     cameraCalib: "../data/calib_cameras/634.params"
