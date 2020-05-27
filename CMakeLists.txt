@@ -68,3 +68,6 @@ target_link_libraries(encrypt class-edge)
 
 add_executable(test_undistort demo/test_undistort.cpp)
 target_link_libraries(test_undistort class-edge)
+
+add_executable(eval_tracking demo/eval_tracking.cpp)
+target_link_libraries(eval_tracking class-edge)
