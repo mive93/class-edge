@@ -31,6 +31,7 @@ public:
     float boxesIntersection(const tk::dnn::box &b, const edge::Tile &t);
     float boxesUnion(const tk::dnn::box &b, const edge::Tile &t);
     float IoU(const tk::dnn::box &b, const edge::Tile &t);
+    void concatDetections(std::vector<tk::dnn::box>& detected);
     void drawTiles(std::vector<cv::Mat>& original_frames, 
                 std::vector<std::vector<tk::dnn::box>> batchDetected, std::vector<std::string> classesNames);
     cv::Mat update(const cv::Mat& frame_in);

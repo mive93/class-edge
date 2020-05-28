@@ -21,25 +21,24 @@
 
 #define MAX_BATCHES 32
 
-cv::Mat getDisparityCanny(const cv::Mat& frame, const bool first_iteration, cv::Mat& canny,cv::Mat& pre_canny,cv::Mat& canny_RGB,cv::Mat& pre_canny_RGB){
+cv::Mat getDisparityCanny(const cv::Mat& frame,cv::Mat& pre_canny){
+    cv::Mat canny;
     cv::Canny(frame, canny, 100, 100 * 2);
-    cv::Mat disparity = canny.clone();
-    if (!first_iteration){
-        cv::cvtColor(pre_canny, pre_canny_RGB, cv::COLOR_GRAY2RGB);
-        cv::cvtColor(canny, canny_RGB, cv::COLOR_GRAY2RGB);
-        disparity = canny_RGB.clone() - pre_canny_RGB.clone();
-    }
+    cv::Mat disparity = canny - pre_canny;
     pre_canny = canny.clone();
 
-    return disparity;
+    int dilation_type = cv::MORPH_RECT;
+    int dilation_size = 1;
+    cv::Mat element = cv::getStructuringElement( dilation_type,
+                            cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
+                            cv::Point( dilation_size, dilation_size ) );
+    
+    cv::Mat disparity_dilated;
+    dilate( disparity, disparity_dilated, element);
+    return disparity_dilated;
 }
 
-cv::Mat getDisparityOpticalFlow(const cv::Mat& frame, cv::Mat& old_frame, const bool& first_iteration){
-    if(first_iteration){
-        old_frame = frame.clone();
-        old_frame.setTo(cv::Scalar(0,0,0));
-    }
-
+cv::Mat getDisparityOpticalFlow(const cv::Mat& frame, cv::Mat& old_frame){
     cv::Mat disparity = old_frame.clone() - frame.clone();
     old_frame = frame.clone();
 
@@ -145,23 +144,167 @@ void drawBatchesDetOnOriginalFrame(cv::Mat & frame, const std::vector<std::vecto
     }
 }
 
+namespace edge{
+    enum DetProcess_t { FULL_IMG,       //default, feeding the netwotk with full image
+                        BS_BATCHES,     //feeding the network with batches got from background suppression
+                        CANNY_BATCHES,  //feeding the network with batches got from frame disparity + canny
+                        OF_BATCHES,     //feeding the network with batches got from frame disparity
+                        FULL_IMG_BS,    //feeding the network with black full image and only colored foreground objects
+                        COLLAGE         //feeding the network with collage of batches got from background suppression
+                        };
+}
+
+std::vector<tk::dnn::box> concatDetections(const std::vector<std::vector<tk::dnn::box>>& batchDetected, const std::vector<cv::Rect>& or_rects){
+    std::vector<tk::dnn::box> detected;
+    for(int bi=0; bi<batchDetected.size(); ++bi){
+        for(int i=0; i<batchDetected[bi].size(); i++) { 
+            tk::dnn::box b;
+            b.x         = batchDetected[bi][i].x+or_rects[bi].x;
+            b.y         = batchDetected[bi][i].y+or_rects[bi].y;
+            b.w         = batchDetected[bi][i].w;
+            b.h         = batchDetected[bi][i].h;
+            b.cl        = batchDetected[bi][i].cl;
+            b.prob      = batchDetected[bi][i].prob;
+            b.probs     = batchDetected[bi][i].probs;
+            detected.push_back(b);
+        }
+    }
+    return detected;
+}
+
+std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dnn::DetectionNN *detNN, cv::Mat & frame, std::vector<cv::Mat>& batch_dnn_input, edge::Profiler& prof, cv::Ptr<cv::BackgroundSubtractor> *bg_subtractor=nullptr, const bool on_gpu=true, const bool first_iteration=false, cv::Mat *pre_canny=nullptr, cv::Mat *old_frame=nullptr, edge::BackGroundSuppression1* bs1=nullptr, edge::BackGroundSuppression2* bs2=nullptr){
+
+    batch_dnn_input.clear();
+    cv::Mat bg_suppressed;
+
+    switch (mode){
+        //background suppression    
+        case edge::BS_BATCHES:
+            prof.tick("background");
+            suppressBackground(frame, bg_suppressed, *bg_subtractor,on_gpu);
+            prof.tock("background");
+            break;
+
+        //canny
+        case edge::CANNY_BATCHES:
+            if(pre_canny == nullptr)
+                FatalError("Pre canny needed");
+            if(first_iteration)
+                cv::Canny(frame, *pre_canny, 100, 100 * 2);    
+            prof.tick("canny");
+            bg_suppressed = getDisparityCanny(frame, *pre_canny);
+            prof.tock("canny");
+            break;
+
+        //frame disparity
+        case edge::OF_BATCHES:
+            if(old_frame == nullptr)
+                FatalError("old_frame needed");
+            if(first_iteration)
+                *old_frame = frame.clone();
+            prof.tick("disparity");
+            bg_suppressed = getDisparityOpticalFlow(frame, *old_frame);
+            prof.tock("disparity");
+            break;
+        }
+        
+        switch (mode){
+        case edge::BS_BATCHES: case edge::OF_BATCHES: case edge::CANNY_BATCHES:{
+            cv::Mat fg_boxes;
+            std::vector<cv::Mat> batches;
+            std::vector<cv::Rect> or_rects;
+            
+            //boxes extraction
+            prof.tick("extract boxes");
+            batches.clear();
+            or_rects.clear();
+            getBatchesFromMovingObjs(frame, bg_suppressed, fg_boxes, batches, or_rects);
+            prof.tock("extract boxes");
+
+            //inference
+            prof.tick("inference");
+            for(auto b:batches)
+                batch_dnn_input.push_back(b.clone());
+            detNN->update(batch_dnn_input, batch_dnn_input.size());
+            prof.tock("inference");
+            
+            //merge detections
+            prof.tick("convert dets");
+            auto detected = concatDetections(detNN->batchDetected, or_rects);
+            prof.tock("convert dets");
+            return detected;
+        }
+        case edge::FULL_IMG:
+            //inference
+            prof.tick("inference");
+            batch_dnn_input.push_back(frame.clone());
+            detNN->update(batch_dnn_input, batch_dnn_input.size());
+            prof.tock("inference");
+            
+            return detNN->detected;
+        case edge::COLLAGE:
+            //background suppression
+            prof.tick("backgroundsuppression2");
+            if(bs2 == nullptr)
+                FatalError("bs2 needed");
+            bg_suppressed = bs2->update(frame);
+            prof.tock("backgroundsuppression2");
+            
+            //inference
+            prof.tick("inference");
+            batch_dnn_input.push_back(bg_suppressed.clone());
+            detNN->update(batch_dnn_input, batch_dnn_input.size());
+            prof.tock("inference");
+
+            //draw boxes
+            prof.tick("convert dets");
+            bs2->concatDetections(detNN->detected);
+            prof.tock("convert dets");
+            return detNN->detected;
+        case edge::FULL_IMG_BS:
+            //background suppression
+            prof.tick("backgroundsuppression1");
+            if(bs1 == nullptr)
+                FatalError("bs1 needed");
+            bg_suppressed = bs1->update(frame);
+            prof.tock("backgroundsuppression1");
+
+            //inference
+            prof.tick("inference");
+            batch_dnn_input.push_back(bg_suppressed.clone());
+            detNN->update(batch_dnn_input, batch_dnn_input.size());
+            prof.tock("inference");
+
+            //draw boxes
+            return detNN->detected;
+        default:
+            break;
+    }
+    std::vector<tk::dnn::box> detected;
+    return detected;
+}
+
 
 int main(int argc, char *argv[]) {
 
-    
+    //mode
+    edge::DetProcess_t mode = edge::OF_BATCHES;
+    if(argc > 1 && atoi(argv[1]) < int(edge::COLLAGE))
+        mode = edge::DetProcess_t(atoi(argv[1])); 
+
     //calibration matrix needed for undistort
     std::string camera_id = "20936";
     cv::Mat calib_mat, dist_coeff;
     int o_width, o_height;
     readCalibrationMatrix("../data/calib_cameras/"+camera_id+".params", calib_mat, dist_coeff, o_width, o_height);
 
-    //background subtractor
-    bool on_gpu = true;
-    cv::Ptr<cv::BackgroundSubtractor> bg_subtractor;
-    if (on_gpu)
-        bg_subtractor = cv::cuda::createBackgroundSubtractorMOG2();
-    else
-        bg_subtractor = cv::createBackgroundSubtractorKNN();
+    //resize and undistort
+    const int new_width  = 960;
+    const int new_height = 540;
+    cv::Mat resized_frame, map1, map2, undistort;
+    bool first_iteration = true;
+    uint8_t *d_input, *d_output; 
+    float *d_map1, *d_map2;
 
     //video capture
     bool gRun = true;
@@ -169,16 +312,15 @@ int main(int argc, char *argv[]) {
     if(!cap.isOpened())
         gRun = false; 
 
-    //roi batches
-    std::vector<cv::Mat> batches;
-    std::vector<cv::Rect> or_rects;
-    bool use_batches = true;
-
     //network
     std::string net = "yolo3_512_fp32.rt";
-    if(!use_batches) net = "yolo3_berkeley_fp32.rt";
     char ntype = 'y';
     int n_classes = 80;
+    if(mode == edge::FULL_IMG || mode == edge::FULL_IMG_BS || mode == edge::COLLAGE) {
+        net = "yolo3_berkeley_fp32.rt";
+        n_classes = 10;
+    }
+    
     tk::dnn::Yolo3Detection yolo;
     tk::dnn::CenternetDetection cnet;
     tk::dnn::MobilenetDetection mbnet;  
@@ -199,33 +341,30 @@ int main(int argc, char *argv[]) {
         FatalError("Network type not allowed (3rd parameter)\n");
     }
     detNN->init(net, n_classes, MAX_BATCHES);
-
-    //visualization
-    bool show = true;
-
-    //resize and undistort
-    const int new_width  = 960;
-    const int new_height = 540;
-    cv::Mat resized_frame, map1, map2, undistort;
-    bool first_iteration = true;
-    uint8_t *d_input, *d_output; 
-    float *d_map1, *d_map2;
+    std::vector<tk::dnn::box> detected;    
 
     //frame capture
     cv::Mat frame;
-    std::vector<cv::Mat> batch_frame, batch_frame2;
-    std::vector<cv::Mat> batch_dnn_input;
+    std::vector<cv::Mat> batch_frame,batch_dnn_input;
+
+    //background subtractor
+    bool on_gpu = true;
+    cv::Ptr<cv::BackgroundSubtractor> bg_subtractor;
+    if (on_gpu)
+        bg_subtractor = cv::cuda::createBackgroundSubtractorMOG2();
+    else
+        bg_subtractor = cv::createBackgroundSubtractorKNN();
+    std::string algo = "OTHER";
+    edge::BackGroundSuppression1 bs1(algo, new_width, new_height);
+    edge::BackGroundSuppression2 bs2(algo, new_width, new_height, n_classes);
 
     //roi
     cv::Mat roi(cv::Size(new_width, new_height), CV_8UC1);
     roi.setTo(cv::Scalar(255,255,255));
+    cv::Mat old_frame, pre_canny;
 
-    //disparity
-    cv::Mat canny, pre_canny, canny_RGB, pre_canny_RGB, disparity_canny;
-    cv::Mat old_frame, disparity_optical_flow;
-    cv::Mat bg_suppressed, fg_boxes;
-    
-    //draw
+    //visualization
+    bool show = true;
     cv::Scalar colors[256];
     for(int c=0; c<n_classes; ++c) {
         int offset = c*123457 % n_classes;
@@ -236,23 +375,8 @@ int main(int argc, char *argv[]) {
     }
     
     //profiler
-    edge::Profiler prof("rois");
-    cv::Mat backsupp;
+    edge::Profiler prof("rois");    
     
-    std::string algo = "OTHER";
-    edge::BackGroundSuppression1 bs1(algo, new_width, new_height);
-    edge::BackGroundSuppression2 bs2(algo, new_width, new_height, n_classes);
-
-    /* mode -----
-    'n' --> the normal detection
-    'b' --> use batches 
-    'c' --> collage mode
-    'd' --> dark mode: set the background with black color
-    */
-    char mode = 'b';
-    if(use_batches && mode != 'b' || !use_batches && mode=='b') {
-        std::cout<<"ERROR: check use_batches and the mode\n";
-    }
     while(gRun) {
         prof.tick("total time");
 
@@ -295,138 +419,23 @@ int main(int argc, char *argv[]) {
         batch_frame.push_back(undistort.clone());
         prof.tock("undistort");
         
-        //get disparity frame
-        // prof.tick("disparity");
-        // disparity_canny = getDisparityCanny(undistort,first_iteration, canny, pre_canny, canny_RGB, pre_canny_RGB);
-        // disparity_optical_flow = getDisparityOpticalFlow(undistort, old_frame, first_iteration);
-        // prof.tock("disparity");
-
         prof.tick("det process");
-        switch (mode)
-        {
-        case 'b':
-            //background suppression
-            prof.tick("background");
-            suppressBackground(undistort, bg_suppressed, bg_subtractor,on_gpu);
-            prof.tock("background");
-
-            //boxes extraction
-            prof.tick("extract boxes");
-            batches.clear();
-            or_rects.clear();
-            getBatchesFromMovingObjs(undistort, bg_suppressed, fg_boxes, batches, or_rects);
-            prof.tock("extract boxes");
-
-            //inference
-            prof.tick("inference");
-            batch_dnn_input.clear();
-            for(auto b:batches)
-                batch_dnn_input.push_back(b.clone());
-            detNN->update(batch_dnn_input, batch_dnn_input.size());
-            prof.tock("inference");
-            
-            //draw boxes
-            prof.tick("draw");
-            drawBatchesDetOnOriginalFrame(batch_frame[0], detNN->batchDetected, or_rects, detNN->classesNames, colors);
-            prof.tock("draw");
-            break;
-        case 'n':
-            //inference
-            prof.tick("inference");
-            batch_dnn_input.clear();
-            batch_dnn_input.push_back(undistort.clone());
-            detNN->update(batch_dnn_input, batch_dnn_input.size());
-            prof.tock("inference");
-            
-            //draw boxes
-            prof.tick("draw");
-            detNN->draw(batch_frame);
-            prof.tock("draw");
-            break;
-        case 'c':
-            //background suppression
-            prof.tick("backgroundsuppression2");
-            backsupp = bs2.update(undistort);
-            prof.tock("backgroundsuppression2");
-            
-            //inference
-            prof.tick("inference");
-            batch_frame2.clear();
-            batch_frame2.push_back(backsupp.clone());
-            batch_dnn_input.clear();
-            batch_dnn_input.push_back(backsupp.clone());
-            detNN->update(batch_dnn_input, batch_dnn_input.size());
-            prof.tock("inference");
-
-            //draw boxes
-            prof.tick("draw");
-            detNN->draw(batch_frame2);
-            prof.tock("draw");
-            prof.tick("draw-2");
-            bs2.drawTiles(batch_frame, detNN->batchDetected, detNN->classesNames);
-            prof.tock("draw-2");
-            break;
-        case 'd':
-            //background suppression
-            prof.tick("backgroundsuppression1");
-            backsupp = bs1.update(undistort);
-            prof.tock("backgroundsuppression1");
-
-            //inference
-            prof.tick("inference");
-            batch_frame2.clear();
-            batch_frame2.push_back(backsupp.clone());
-            batch_dnn_input.clear();
-            batch_dnn_input.push_back(backsupp.clone());
-            detNN->update(batch_dnn_input, batch_dnn_input.size());
-            prof.tock("inference");
-
-            //draw boxes
-            prof.tick("draw");
-            detNN->draw(batch_frame2);
-            detNN->draw(batch_frame);
-            prof.tock("draw");
-            break;
-        default:
-            break;
-        }
+        detected.clear();
+        detected = detectionProcess(mode,detNN, undistort, batch_dnn_input, prof, &bg_subtractor, on_gpu, first_iteration, &pre_canny, &old_frame, &bs1, &bs2);
         prof.tock("det process");
+
+        //draw boxes
+        prof.tick("draw");
+        if(detNN->batchDetected.size()){
+            detNN->batchDetected[0] = detected;
+            detNN->draw(batch_frame);
+        }
+        prof.tock("draw");
 
         //visualization
         prof.tick("show");
         if(show){
-
-            // //visualize each batch 
-            // detNN->draw(batches);
-            // for(auto& b:batches){
-            //     if(b.rows*b.cols > 3000){
-            //     cv::imshow("batch", b);
-            //     cv::waitKey(0);
-            //     }
-            // }
-
-            // //visualize canny or optical flow
-            // cv::imshow("disparity Canny ", disparity_canny);
-            // cv::imshow("disparity Optical Flow ", disparity_optical_flow);
-
-            // // visualize black ROIs on white frane
-            // drawROIs(roi, detNN->detected);
-            // cv::imshow("roi", roi);
-
-            // // viosualize baground suppression and extracted boxes on frame
-            // cv::imshow("Background Suppression", bg_suppressed);
-            // cv::imshow("boxes of foreground objects", fg_boxes);
-            switch (mode)
-            {
-            case 'c':
-            case 'd':
-                cv::imshow("backsupp", backsupp);
-                cv::imshow("backsupp det", batch_frame2[0]);
-            default:
-                break;
-            }
             cv::imshow("detection", batch_frame[0]);
-
             cv::waitKey(1);
         }
         prof.tock("show");
@@ -437,8 +446,7 @@ int main(int argc, char *argv[]) {
         prof.tock("total time");
         prof.printStats(500);
     }
-
-    // imwrite( "roi_"+camera_id+".jpg", roi);
+    
     return 0;
 }
 

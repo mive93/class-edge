@@ -89,6 +89,27 @@ float BackGroundSuppression2::IoU(const tk::dnn::box &b, const edge::Tile &t){
     return I / U;
 }
 
+void BackGroundSuppression2::concatDetections(std::vector<tk::dnn::box>& detected) {
+    std::vector<edge::Tile> new_tiles = cl.getTiles();
+    int tile_id;
+    float max_overlap;
+    float aus;
+
+    for(int i=0; i<detected.size(); i++) { 
+        tile_id = 0;
+        max_overlap = 0.0;
+        for (int j=0; j<new_tiles.size(); j++) {
+            aus = IoU(detected[i], new_tiles[j]);
+            if(aus > max_overlap) {
+                max_overlap = aus;
+                tile_id = j;
+            }
+        }
+        detected[i].x = detected[i].x - new_tiles.at(tile_id).x + original_tiles.at(new_tiles.at(tile_id).image_id).x;
+        detected[i].y = detected[i].y - new_tiles.at(tile_id).y + original_tiles.at(new_tiles.at(tile_id).image_id).y;
+    }
+}
+
 void BackGroundSuppression2::drawTiles(std::vector<cv::Mat>& original_frames, 
                 std::vector<std::vector<tk::dnn::box>> batchDetected, std::vector<std::string> classesNames) {
     tk::dnn::box b;
