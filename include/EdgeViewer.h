@@ -13,11 +13,12 @@ struct tracker_line{
 
 struct camera_data{
     std::vector<tk::dnn::box> detected;        
+    std::vector<tk::dnn::box> gt; 
     std::vector<tracker_line> lines;
     cv::Mat frame;
     int id = 0;
     int showId = -1;
-    bool *showCamera;
+    bool *showCamera = nullptr;
     bool newFrame = false;
     std::mutex *mtxNewFrame;
 
@@ -160,36 +161,58 @@ class EdgeViewer : public tk::gui::Viewer {
                     tkDrawRectangle(tk::common::Vector3<float>{cd.pose.x, cd.pose.y+ d.h/2.0/cd.frame_height*cd.xScale + 0.008*cd.yScale, cd.pose.z+0.001},
                                     tk::common::Vector3<float>{classesNames[d.cl].size()/float(cd.frame_width)*12*cd.xScale, 0.015*cd.yScale, 0}, 
                                     true);
-                    tkSetColor(tk::gui::color::WHITE);
-                    
 
+                    tkSetColor(tk::gui::color::WHITE);
                     tkDrawText(classesNames[d.cl],tk::common::Vector3<float>{cd.pose.x - (classesNames[d.cl].size()/float(cd.frame_width)*12*cd.xScale)/2, 
-                                                cd.pose.y+ d.h/2.0/cd.frame_height*cd.xScale + 0.002*cd.yScale, cd.pose.z},
+                                    cd.pose.y+ d.h/2.0/cd.frame_height*cd.xScale + 0.002*cd.yScale, cd.pose.z},
                                     tk::common::Vector3<float>{0, 0, 0},
                                     tk::common::Vector3<float>{0.025*cd.xScale, 0.015*cd.yScale, 0});
+                }
+
+                if(cd.gt.size()){
+                    for(const auto& g: cd.gt){
+                        tkSetColor(tk::gui::color::RED);
+                        cd.pose = convertPosition((g.x+g.w/2), (g.y+g.h/2), -0.002, cd.id);
+                        cd.size = convertSize(g.w, g.h, cd.id);
+                        tkDrawRectangle(cd.pose, cd.size, false);
+
+                        tkDrawRectangle(tk::common::Vector3<float>{cd.pose.x, cd.pose.y+ g.h/2.0/cd.frame_height*cd.xScale + 0.008*cd.yScale, cd.pose.z+0.001},
+                                        tk::common::Vector3<float>{classesNames[g.cl].size()/float(cd.frame_width)*12*cd.xScale, 0.015*cd.yScale, 0}, 
+                                        true);
+
+                        tkSetColor(tk::gui::color::WHITE);
+                        tkDrawText(classesNames[g.cl],tk::common::Vector3<float>{cd.pose.x - (classesNames[g.cl].size()/float(cd.frame_width)*12*cd.xScale)/2, 
+                                        cd.pose.y+ g.h/2.0/cd.frame_height*cd.xScale + 0.002*cd.yScale, cd.pose.z},
+                                        tk::common::Vector3<float>{0, 0, 0},
+                                        tk::common::Vector3<float>{0.025*cd.xScale, 0.015*cd.yScale, 0});
+
+                    }
                 }
                 cd.mtxNewFrame->unlock();
 
                 //draw lines
-                cd.mtxNewFrame->lock();
-                for(const auto& l:cd.lines){
-                    glLineWidth(3);
-                    tkSetColor(l.color);
-                    tkDrawLine(l.points);
+                if(!cd.gt.size()){
+                    cd.mtxNewFrame->lock();
+                    for(const auto& l:cd.lines){
+                        glLineWidth(3);
+                        tkSetColor(l.color);
+                        tkDrawLine(l.points);
+                    }
+                    cd.mtxNewFrame->unlock();
                 }
-                cd.mtxNewFrame->unlock();
             
             }
             
         }
-        void setFrameData(const cv::Mat &new_frame, const std::vector<tk::dnn::box> &new_detected, const std::vector<tracker_line>& new_lines, int id){ 
+        void setFrameData(const cv::Mat &new_frame, const std::vector<tk::dnn::box> &new_detected, const std::vector<tracker_line>& new_lines, int id, const std::vector<tk::dnn::box> &groundtruth = std::vector<tk::dnn::box>()){ 
             int cur_index = idIndexBind[id];
             
             cameraData[cur_index].mtxNewFrame->lock();
             cameraData[cur_index].newFrame  = true;
             cameraData[cur_index].frame     = new_frame.clone();
             cameraData[cur_index].detected  = new_detected;
-            cameraData[cur_index].lines     = new_lines;
+            if(!groundtruth.size()) cameraData[cur_index].lines   = new_lines;
+            if(groundtruth.size()) cameraData[cur_index].gt      = groundtruth;
             cameraData[cur_index].mtxNewFrame->unlock();
         }
 

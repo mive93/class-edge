@@ -71,3 +71,6 @@ target_link_libraries(test_undistort class-edge)
 
 add_executable(create_rois demo/create_rois.cpp)
 target_link_libraries(create_rois class-edge)
+
+add_executable(eval_tracking demo/eval_tracking.cpp)
+target_link_libraries(eval_tracking class-edge)

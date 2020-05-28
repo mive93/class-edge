@@ -15,8 +15,8 @@ cameras:
     cameraCalib: "../data/calib_cameras/20936.params"
     maskFileOrient: "../data/masks_orient/1920-1080_mask_null.jpg"
   - id: 20937
-    encrypted: 1
-    input: "U2FsdGVkX19hmBbSEkc+WgNtwuVjmbzYuHM1ifIcgTVuN61hS+P8K/ZjPuPLbMF42hWVj+RteOfJpEiznbtUrhzRcSqXi+dilVJP/BhlOto="
+    encrypted: 0
+    input: "../data/20937.mp4"
     pmatrix: "../data/pmat_new/pmat_07-03-20937_20p.txt"
     maskfile: "../data/masks/20937_mask.jpg"
     cameraCalib: "../data/calib_cameras/20937.params"

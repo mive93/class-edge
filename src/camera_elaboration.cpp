@@ -30,7 +30,7 @@ void GPS2pixel(double lat, double lon, int &x, int &y, double* adfGeoTransform)
     y = int(round( (lat - adfGeoTransform[3]) / adfGeoTransform[5]) );
 }
 
-void convertCameraPixelsToMapMeters(const int x, const int y, const int cl, edge::camera& cam, double& north, double& east)
+void convertCameraPixelsToMapMeters(const int x, const int y, const int cl, const cv::Mat& prj_mat, double& north, double& east, tk::common::GeodeticConverter geo_conv, double* adf_geo_transform)
 {
     double latitude, longitude;
     double up;
@@ -38,16 +38,21 @@ void convertCameraPixelsToMapMeters(const int x, const int y, const int cl, edge
     //transform camera pixel into georeferenced map pixel
     std::vector<cv::Point2f> x_y, ll;
     x_y.push_back(cv::Point2f(x, y));
-    cv::perspectiveTransform(x_y, ll, cam.prjMat);
+    cv::perspectiveTransform(x_y, ll, prj_mat);
 
     //tranform to map pixel into GPS
-    pixel2GPS(ll[0].x, ll[0].y, latitude, longitude, cam.adfGeoTransform);
+    if(adf_geo_transform != nullptr)
+        pixel2GPS(ll[0].x, ll[0].y, latitude, longitude, adf_geo_transform);
+    else{
+        latitude = ll[0].x;
+        longitude = ll[0].y;
+    }
 
     //conversion from GPS to meters 
-    cam.geoConv.geodetic2Enu(latitude, longitude, 0, &north, &east, &up);    
+    geo_conv.geodetic2Enu(latitude, longitude, 0, &north, &east, &up);    
 }
 
-std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, edge::camera& cam, const float scale_x, const float scale_y, bool verbose){
+std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, const cv::Mat& inv_prj_mat, tk::common::GeodeticConverter geo_conv, std::vector<tk::dnn::box>&  detected, double*  adf_geo_transform, const int cam_id,const float scale_x, const float scale_y, bool verbose, std::ofstream *det_out, const int frame_id){
     std::vector<edge::tracker_line>  lines;
     std::vector<cv::Point2f> map_pixels;
     std::vector<cv::Point2f> camera_pixels;
@@ -64,21 +69,38 @@ std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, ed
             camera_pixels.clear();
             for(int i=0; i < tr.predList.size(); ++i){
                 //convert from meters to GPS
-                cam.geoConv.enu2Geodetic(tr.predList[i].x, tr.predList[i].y, 0, &latitude, &longitude, &altitude);
+                geo_conv.enu2Geodetic(tr.predList[i].x, tr.predList[i].y, 0, &latitude, &longitude, &altitude);
+
                 //convert from GPS to map pixels
-                GPS2pixel(latitude, longitude, map_pix_x, map_pix_y, cam.adfGeoTransform);
-                map_pixels.push_back(cv::Point2f(map_pix_x, map_pix_y));
+                if(adf_geo_transform != nullptr){
+                    GPS2pixel(latitude, longitude, map_pix_x, map_pix_y, adf_geo_transform);
+                    map_pixels.push_back(cv::Point2f(map_pix_x, map_pix_y));
+                }
+                else
+                    map_pixels.push_back(cv::Point2f(latitude, longitude));                
             }
 
             //transform map pixels to camers pixels
-            cv::perspectiveTransform(map_pixels, camera_pixels, cam.invPrjMat);
+            cv::perspectiveTransform(map_pixels, camera_pixels, inv_prj_mat);
+
+            //extract tracker bounding box
+            tk::dnn::box b; 
+            b.x = (camera_pixels[tr.predList.size()-1].x - tr.traj[tr.traj.size()-1].w/2)*scale_x;
+            b.y = (camera_pixels[tr.predList.size()-1].y - tr.traj[tr.traj.size()-1].h)*scale_y;
+            b.w = tr.traj[tr.traj.size()-1].w*scale_x;
+            b.h = tr.traj[tr.traj.size()-1].h*scale_y;
+            b.cl = tr.cl;
+            b.prob = 1;
+            detected.push_back(b);
+
+            if(det_out != nullptr)
+                *det_out<<frame_id<<","<<tr.id<<","<<b.x<<","<<b.y<<","<<b.w<<","<<b.h<<","<<b.cl<<",-1,-1,-1\n";
             
             //convert into viewer coordinates
-            for(auto cp: camera_pixels)
-            {
+            for(auto cp: camera_pixels){
                 if(verbose)
                     std::cout<<"x:\t"<<cp.x<<"\t y:\t"<<cp.y<<std::endl;
-                line.points.push_back(viewer->convertPosition(cp.x*scale_x, cp.y*scale_y, -0.004, cam.id));
+                line.points.push_back(viewer->convertPosition(cp.x*scale_x, cp.y*scale_y, -0.004, cam_id));
             }
             line.color = tk::gui::Color_t {tr.r, tr.g, tr.b, 255};
             lines.push_back(line);
@@ -135,7 +157,7 @@ void *elaborateSingleCamera(void *ptr)
     //initiate the tracker
     float   dt              = 0.03;
     int     n_states        = 5;
-    int     initial_age     = 5;
+    int     initial_age     = 15;
     bool    tr_verbose      = false;
     tracking::Tracking t(n_states, dt, initial_age);
     
@@ -146,6 +168,7 @@ void *elaborateSingleCamera(void *ptr)
     cv::Mat map1, map2;
 
     std::vector<tk::dnn::box>       detected;
+    std::vector<tk::dnn::box>       tr_detected;
     std::vector<tracking::obj_m>    cur_frame;
 
     double north, east;
@@ -212,12 +235,14 @@ void *elaborateSingleCamera(void *ptr)
             cur_frame.clear();
             for(auto d:detected){
                 if(checkClass(d.cl, cam->dataset)){
-                    convertCameraPixelsToMapMeters((d.x + d.w / 2)*scale_x, (d.y + d.h)*scale_y, d.cl, *cam, north, east);
+                    convertCameraPixelsToMapMeters((d.x + d.w / 2)*scale_x, (d.y + d.h)*scale_y, d.cl, cam->prjMat, north, east, cam->geoConv, cam->adfGeoTransform);
                     tracking::obj_m obj;
                     obj.frame   = 0;
                     obj.cl      = d.cl;
                     obj.x       = north;
                     obj.y       = east;
+                    obj.w       = d.w*scale_x; 
+                    obj.h       = d.h*scale_y;
                     cur_frame.push_back(obj);
                 }
             }
@@ -226,8 +251,11 @@ void *elaborateSingleCamera(void *ptr)
 
             //feed the viewer
             prof.tick("Viewer feeding");
-            if(show && cam->show)
-                viewer->setFrameData(frame, detected, getTrackingLines(t, *cam, 1/scale_x, 1/scale_y,verbose), cam->id);
+            if(show && cam->show){
+                tr_detected.clear();
+                auto tr_lines = getTrackingLines(t, cam->invPrjMat, cam->geoConv, tr_detected, cam->adfGeoTransform, cam->id, 1/scale_x, 1/scale_y,verbose);
+                viewer->setFrameData(frame, tr_detected, tr_lines , cam->id);
+            }
             prof.tock("Viewer feeding");
 
             prof.tick("Prepare message");

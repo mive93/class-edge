@@ -13,6 +13,7 @@ This projects depends on:
   * yaml-cpp 0.5.2 
   * Eigen
   * GDal
+  * motmetrics
 
 ```
 sudo apt-get install -y libeigen3-dev \
@@ -113,4 +114,26 @@ Go to tkDNN/include/tkDNN/DetectionNN.h and change the update function with this
                 // if(save_times) *times<<t_ns<<"\n";
             }
         }  
+```
+
+## How to install py-motmetrics
+
+```
+pip install motmetrics
+```
+To use it:
+
+```
+#Structure
+#---------
+#Layout for ground truth data
+#    <GT_ROOT>/<SEQUENCE_1>/gt/gt.txt
+#    <GT_ROOT>/<SEQUENCE_2>/gt/gt.txt
+#    ...
+#Layout for test data
+#    <TEST_ROOT>/<SEQUENCE_1>.txt
+#    <TEST_ROOT>/<SEQUENCE_2>.txt
+#    ...
+
+python3 -m motmetrics.apps.eval_motchallenge <GT_ROOT> <TEST_ROOT>
 ```
