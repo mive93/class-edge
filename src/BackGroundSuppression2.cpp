@@ -13,8 +13,8 @@ bool compareBoxImage(const cv::Mat &a, const cv::Mat &b) {
 
 namespace edge {
 
-BackGroundSuppression2::BackGroundSuppression2(std::string algo, const int width, const int height,
-                                               const int n_classes) : BackGroundSuppression(algo){
+BackGroundSuppression2::BackGroundSuppression2(const bool on_gpu, const int width, const int height,
+                                               const int n_classes) : BackGroundSuppression(on_gpu){
     for(int c=0; c<n_classes; c++) {
         int offset = c*123457 % n_classes;
         float r = getColor(2, offset, n_classes);

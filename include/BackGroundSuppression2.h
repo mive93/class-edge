@@ -25,7 +25,7 @@ private:
     void showBoxImage(std::vector<cv::Mat> &box_image);
     
 public:
-    BackGroundSuppression2(std::string algo, const int width, const int height, const int n_classes);
+    BackGroundSuppression2(const bool on_gpu, const int width, const int height, const int n_classes);
     ~BackGroundSuppression2() {};
     float overlap(const float p1, const float l1, const float p2, const float l22);
     float boxesIntersection(const tk::dnn::box &b, const edge::Tile &t);

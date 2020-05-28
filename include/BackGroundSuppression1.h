@@ -10,7 +10,7 @@ private:
     cv::Mat frame_dark;
     cv::Mat frame_out;
 public:
-    BackGroundSuppression1(std::string algo, const int width, const int height);
+    BackGroundSuppression1(const bool on_gpu, const int width, const int height);
     ~BackGroundSuppression1() {};
     cv::Mat update(const cv::Mat& frame_in);
 };

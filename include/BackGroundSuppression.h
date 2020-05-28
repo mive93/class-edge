@@ -8,27 +8,38 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
+#include <opencv2/cudabgsegm.hpp>
 
 namespace edge {
 
 class BackGroundSuppression {
 private:
     cv::Ptr<cv::BackgroundSubtractor> pBackSub;
+    cv::cuda::GpuMat in, out;
+    bool onGPU;
 
 public:
     cv::Mat backsup;
-    BackGroundSuppression(std::string algo) {
+    BackGroundSuppression(const bool on_gpu=true) {
+        onGPU = on_gpu;
         //create Background Subtractor objects
-        if (algo == "MOG2")
-            pBackSub = cv::createBackgroundSubtractorMOG2();
+        if (on_gpu)
+            pBackSub = cv::cuda::createBackgroundSubtractorMOG2();
         else
             pBackSub = cv::createBackgroundSubtractorKNN();
     };
     ~BackGroundSuppression() {};
     virtual cv::Mat update(const cv::Mat& frame_in) {};
 
-    void getBackgroundSuppression(const cv::Mat& frame_in) {
-        pBackSub->apply(frame_in, backsup);
+    cv::Mat getBackgroundSuppression(const cv::Mat& frame_in) {
+        if (onGPU){
+            in.upload(frame_in);
+            pBackSub->apply(in, out);
+            out.download(backsup);
+        }
+        else
+            pBackSub->apply(frame_in, backsup);
+        return backsup;
     }
 };
 }

@@ -3,7 +3,7 @@
 
 namespace edge {
 
-BackGroundSuppression1::BackGroundSuppression1(std::string algo, const int width, const int height) : BackGroundSuppression(algo){
+BackGroundSuppression1::BackGroundSuppression1(const bool on_gpu, const int width, const int height) : BackGroundSuppression(on_gpu){
     frame_dark = cv::Mat(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
 }
 
