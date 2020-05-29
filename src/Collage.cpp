@@ -96,7 +96,7 @@ void Collage::findNewPosition(const int w, const int h) {
         resize();
     }
     //search space
-    while(!searchSpace(w,h) && new_x+w > W)
+    while(!searchSpace(w,h) || new_x+w > W)
         resize();
     //update filled_image
     // std::cout<<"new_x, new_y fill: "<<new_x<<", "<<new_y<<std::endl;

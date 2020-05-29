@@ -74,8 +74,14 @@ int main(int argc, char **argv)
         detNN->init(net, n_classes, MAX_BATCHES);
     }
     else{
+        #ifdef BDD_DAT
         n_classes = 10;
         std::string net = "yolo3_berkeley_fp32.rt";
+        #endif
+        #ifdef COCO_DAT
+        n_classes = 80;
+        std::string net = "yolo3_fp32.rt";
+        #endif
         detNN = new tk::dnn::Yolo3Detection();
         detNN->init(net, n_classes);
     }
@@ -95,7 +101,7 @@ int main(int argc, char **argv)
     edge::Profiler prof("tracker eval");
 
     //visualization
-    show = false;
+    show = true;
     bool show_cam = true;
     if(show){
         viewer = new edge::EdgeViewer(1);

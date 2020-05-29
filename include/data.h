@@ -57,17 +57,17 @@ extern edge::EdgeViewer *viewer;
 extern bool gRun;
 extern bool show;
 
-// #define COCO
-#define BERKELEY
+#define COCO_DAT
+// #define BDD_DAT
 
 //COCO
-#ifdef COCO
+#ifdef COCO_DAT
 #define CAR_ID 2
 #define TRUCK_ID 7
 #endif
 
 //Berkeley
-#ifdef BERKELEY
+#ifdef BDD_DAT
 #define CAR_ID 1
 #define TRUCK_ID 2
 #endif
