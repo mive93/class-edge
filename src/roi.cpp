@@ -123,8 +123,6 @@ std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dn
             
             //boxes extraction
             prof.tick("extract boxes");
-            batches.clear();
-            or_rects.clear();
             getBatchesFromMovingObjs(frame, bg_suppressed, fg_boxes, batches, or_rects);
             prof.tock("extract boxes");
 

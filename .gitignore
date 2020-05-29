@@ -3,5 +3,5 @@ build/
 data/*mp4
 data/all_camera.yaml
 data/*tif
-data/dets/
-data/gt/
+data/dets*
+data/gt*

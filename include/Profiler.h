@@ -45,7 +45,7 @@ public:
         timers[timer_name].diff.push_back(diff);
     }
 
-    void printStats(int interval = 100){
+    void printStats(int interval = 100, std::ofstream *outfile=nullptr){
         bool print = false;
         for (auto& t : timers)
             if (t.second.diff.size() == interval) {
@@ -89,8 +89,21 @@ public:
                         << "\toverall min(ms): "    << t.second.oMin / 1000
                         << "\toverall max(ms): "    << t.second.oMax / 1000
                         << std::endl ;
+            
+                if(outfile != nullptr){
+                        *outfile << t.first 
+                        << ";" << cur_sum / double(t.second.diff.size()) / 1000
+                        << ";" << cur_min / 1000
+                        << ";" << cur_max / 1000
+                        << ";" << t.second.oAvg / 1000
+                        << ";" << t.second.oMin / 1000
+                        << ";" << t.second.oMax / 1000
+                        << "\n" ;
+                }
                 t.second.diff.clear();
             }
+            if(outfile != nullptr)
+                *outfile << "\n";
         }
     }
 };

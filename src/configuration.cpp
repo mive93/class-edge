@@ -77,7 +77,7 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
     }
 }
 
-bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cameras_par,std::string& net, char& type, int& n_classes, std::string& tif_map_path, bool AI_city_challenge){
+bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cameras_par,std::string& net, char& type, int& n_classes, std::string& tif_map_path){
     std::string help =  "class-edge demo\nCommand:\n"
                         "-i\tparameters file\n"
                         "-n\tnetwork rt path\n"
@@ -144,30 +144,16 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
 
     //if no parameters file given, set all default values for 1 camera
     if(params_path == "") {
-        if(!AI_city_challenge){
-            cameras_par.resize(1);
-            cameras_par[0].id                   = 20936;
-            cameras_par[0].input                = "../data/20936.mp4";
-            cameras_par[0].pmatrixPath          = "../data/pmat_new/pmat_07-03-20936_20p.txt";
-            cameras_par[0].maskfilePath         = "../data/masks/20936_mask.jpg";
-            cameras_par[0].cameraCalibPath      = "../data/calib_cameras/20936.params";
-            cameras_par[0].maskFileOrientPath   = "../data/masks_orient/1920-1080_mask_null.jpg";
-            cameras_par[0].streamWidth          = 960;
-            cameras_par[0].streamHeight         = 540;
-            cameras_par[0].show                 = true;
-        }
-        else{
-            cameras_par.resize(1);
-            cameras_par[0].id                   = 7;
-            cameras_par[0].input                = "../data/c007/vdo.avi";
-            cameras_par[0].pmatrixPath          = "../data/c007/calibration.txt";
-            cameras_par[0].maskfilePath         = "";
-            cameras_par[0].cameraCalibPath      = "";
-            cameras_par[0].maskFileOrientPath   = "";
-            cameras_par[0].streamWidth          = 1920;
-            cameras_par[0].streamHeight         = 1080;
-            cameras_par[0].show                 = true;
-        }
+        cameras_par.resize(1);
+        cameras_par[0].id                   = 20936;
+        cameras_par[0].input                = "../data/20936.mp4";
+        cameras_par[0].pmatrixPath          = "../data/pmat_new/pmat_07-03-20936_20p.txt";
+        cameras_par[0].maskfilePath         = "../data/masks/20936_mask.jpg";
+        cameras_par[0].cameraCalibPath      = "../data/calib_cameras/20936.params";
+        cameras_par[0].maskFileOrientPath   = "../data/masks_orient/1920-1080_mask_null.jpg";
+        cameras_par[0].streamWidth          = 960;
+        cameras_par[0].streamHeight         = 540;
+        cameras_par[0].show                 = true;
     }
     else 
         readParamsFromYaml(params_path, cameras_ids, cameras_par, net, type, n_classes, tif_map_path);
@@ -295,7 +281,7 @@ void readTiff(const std::string& path, double *adfGeoTransform)
     }
 }
 
-std::vector<edge::camera> configure(int argc, char **argv, bool AI_city_challenge)
+std::vector<edge::camera> configure(int argc, char **argv)
 {
     std::vector<edge::camera_params> cameras_par;
     std::string net, tif_map_path;
@@ -303,7 +289,7 @@ std::vector<edge::camera> configure(int argc, char **argv, bool AI_city_challeng
     int n_classes;
 
     //read args from command line
-    readParameters(argc, argv, cameras_par, net, type, n_classes, tif_map_path, AI_city_challenge);
+    readParameters(argc, argv, cameras_par, net, type, n_classes, tif_map_path);
 
     //set dataset
     edge::Dataset_t dataset;
@@ -319,15 +305,9 @@ std::vector<edge::camera> configure(int argc, char **argv, bool AI_city_challeng
     //read calibration matrixes for each camera
     std::vector<edge::camera> cameras(cameras_par.size());
     for(size_t i=0; i<cameras.size(); ++i){
-        if(!AI_city_challenge){ //MASA
-            readCalibrationMatrix(cameras_par[i].cameraCalibPath, cameras[i].calibMat, cameras[i].distCoeff, cameras[i].calibWidth, cameras[i].calibHeight);
-            readProjectionMatrix(cameras_par[i].pmatrixPath, cameras[i].prjMat);
-            cameras[i].invPrjMat    = cameras[i].prjMat.inv();
-        }
-        else{ //AICityChallenge Dataset
-            readProjectionMatrix(cameras_par[i].pmatrixPath, cameras[i].invPrjMat);
-            cameras[i].prjMat    = cameras[i].invPrjMat.inv();
-        }
+        readCalibrationMatrix(cameras_par[i].cameraCalibPath, cameras[i].calibMat, cameras[i].distCoeff, cameras[i].calibWidth, cameras[i].calibHeight);
+        readProjectionMatrix(cameras_par[i].pmatrixPath, cameras[i].prjMat);
+        cameras[i].invPrjMat    = cameras[i].prjMat.inv();
         cameras[i].id           = cameras_par[i].id;
         cameras[i].input        = cameras_par[i].input;
         cameras[i].streamWidth  = cameras_par[i].streamWidth;
@@ -345,31 +325,21 @@ std::vector<edge::camera> configure(int argc, char **argv, bool AI_city_challeng
 
     //read tif image to get georeference parameters
     double* adfGeoTransform;
-    if(!AI_city_challenge){
-        adfGeoTransform = (double *)malloc(6 * sizeof(double));
-        readTiff(tif_map_path, adfGeoTransform);
-        for(int i=0; i<6; i++)
-            std::cout<<adfGeoTransform[i]<<" ";
-        std::cout<<std::endl;
-    }
-    
+    adfGeoTransform = (double *)malloc(6 * sizeof(double));
+    readTiff(tif_map_path, adfGeoTransform);
+    for(int i=0; i<6; i++)
+        std::cout<<adfGeoTransform[i]<<" ";
+    std::cout<<std::endl;
     for(auto& c: cameras)
     {
-        if(!AI_city_challenge){
-            c.adfGeoTransform = (double *)malloc(6 * sizeof(double));
-            memcpy(c.adfGeoTransform, adfGeoTransform, 6 * sizeof(double) );
+        c.adfGeoTransform = (double *)malloc(6 * sizeof(double));
+        memcpy(c.adfGeoTransform, adfGeoTransform, 6 * sizeof(double) );
 
-            //initialize the geodetic converter with a point in the MASA
-            c.geoConv.initialiseReference(44.655540, 10.934315, 0);
-        }
-        else{
-            //initialize the geodetic converter with a point in Iowa
-            c.geoConv.initialiseReference(42.491916, -90.723723, 0);
-        }
-
+        //initialize the geodetic converter with a point in the MASA
+        c.geoConv.initialiseReference(44.655540, 10.934315, 0);
     }
-    if(!AI_city_challenge)
-        free(adfGeoTransform);   
+    
+    free(adfGeoTransform);   
 
     return cameras;
 }

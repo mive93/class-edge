@@ -206,6 +206,7 @@ class EdgeViewer : public tk::gui::Viewer {
         }
         void setFrameData(const cv::Mat &new_frame, const std::vector<tk::dnn::box> &new_detected, const std::vector<tracker_line>& new_lines, int id, const std::vector<tk::dnn::box> &groundtruth = std::vector<tk::dnn::box>()){ 
             int cur_index = idIndexBind[id];
+            cameraData[cur_index].gt.clear();
             
             cameraData[cur_index].mtxNewFrame->lock();
             cameraData[cur_index].newFrame  = true;

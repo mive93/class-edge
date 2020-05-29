@@ -93,8 +93,12 @@ std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, co
             b.prob = 1;
             detected.push_back(b);
 
-            if(det_out != nullptr)
-                *det_out<<frame_id<<","<<tr.id<<","<<b.x<<","<<b.y<<","<<b.w<<","<<b.h<<","<<b.cl<<",-1,-1,-1\n";
+            if(det_out != nullptr){
+                int cl;
+                if(b.cl == 7) cl = 2; 
+                else if(b.cl == 2) cl = 1;
+                *det_out<<frame_id<<","<<tr.id<<","<<b.x<<","<<b.y<<","<<b.w<<","<<b.h<<","<<cl<<",-1,-1,-1\n";
+            }
             
             //convert into viewer coordinates
             for(auto cp: camera_pixels){
