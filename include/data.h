@@ -6,8 +6,8 @@
 #include <iomanip>
 #include <fstream>
 
-#include "tkCommon/geodetic_conv.h"
 #include "tkDNN/DetectionNN.h"
+#include "tkCommon/common.h"
 #include "EdgeViewer.h"
 
 #define MAX_CAMERAS 10
