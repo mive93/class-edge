@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
         gRun = false; 
 
     //network
-    std::string net = "yolo3_512_fp32.rt";
+    std::string net = "yolo3_64_fp32.rt";
     char ntype = 'y';
     int n_classes = 80;
     if(mode == edge::FULL_IMG || mode == edge::FULL_IMG_BS || mode == edge::COLLAGE) {

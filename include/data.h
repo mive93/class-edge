@@ -57,4 +57,23 @@ extern edge::EdgeViewer *viewer;
 extern bool gRun;
 extern bool show;
 
+// #define COCO
+#define BERKELEY
+
+//COCO
+#ifdef COCO
+#define CAR_ID 2
+#define TRUCK_ID 7
+#endif
+
+//Berkeley
+#ifdef BERKELEY
+#define CAR_ID 1
+#define TRUCK_ID 2
+#endif
+
+//AICityChallenge
+#define CAR_ID_AICC 1
+#define TRUCK_ID_AICC 2
+
 #endif /*DATA_H*/

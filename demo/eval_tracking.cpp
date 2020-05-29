@@ -32,8 +32,8 @@ std::vector<tk::dnn::box> readFrameGroundtruth(std::ifstream& gt, std::streampos
         b.w         = values[4];
         b.h         = values[5];
         b.cl        = values[6];
-        if(b.cl == 1)       b.cl = 2; //car AI      -> car COCO
-        else if(b.cl == 2)  b.cl = 7; //truck AI    -> truck COCO
+        if(b.cl == CAR_ID_AICC)       b.cl = CAR_ID; 
+        else if(b.cl == TRUCK_ID_AICC)  b.cl = TRUCK_ID; 
         b.prob      = 1;
         
         groundtruth.push_back(b);
@@ -47,11 +47,12 @@ int main(int argc, char **argv)
 
     //mode
     edge::DetProcess_t mode = edge::OF_BATCHES;
-    if(argc > 1 && atoi(argv[1]) < int(edge::COLLAGE))
+    if(argc > 1 && atoi(argv[1]) <= int(edge::COLLAGE))
         mode = edge::DetProcess_t(atoi(argv[1])); 
 
-    // std::vector<int> gt_ids = {7,9,10};
-    std::vector<int> gt_ids = {6,7,8,9,10,16,17,18,19,20,21,22,23,24,25,26,27,28,29,33,34,35,36};
+    std::vector<int> gt_ids = {7,9,10};
+    // std::vector<int> gt_ids = {7,8,33,27};
+    // std::vector<int> gt_ids = {6,7,8,9,10,16,17,18,19,20,21,22,23,24,25,26,27,28,29,33,34,35,36};
 
     if(!fileExist("../data/gt/c007/vdo.avi")){
         system("wget https://cloud.hipert.unimore.it/s/g3f77BeoziMxPdB/download -O ../data/gt.zip");
@@ -73,7 +74,8 @@ int main(int argc, char **argv)
         detNN->init(net, n_classes, MAX_BATCHES);
     }
     else{
-        std::string net = "yolo3_fp32.rt";
+        n_classes = 10;
+        std::string net = "yolo3_berkeley_fp32.rt";
         detNN = new tk::dnn::Yolo3Detection();
         detNN->init(net, n_classes);
     }
@@ -93,7 +95,7 @@ int main(int argc, char **argv)
     edge::Profiler prof("tracker eval");
 
     //visualization
-    bool show = true;
+    show = false;
     bool show_cam = true;
     if(show){
         viewer = new edge::EdgeViewer(1);
@@ -175,7 +177,7 @@ int main(int argc, char **argv)
             prof.tick("Tracker feeding");
             cur_frame.clear();
             for(auto d:detected){
-                if(d.cl == 2 || d.cl == 7){ //car for COCO (for berkeley ==1)
+                if(d.cl == CAR_ID){
                     convertCameraPixelsToMapMeters(d.x + d.w / 2, d.y + d.h, d.cl, prjMat, north, east, geoConv);
                     tracking::obj_m obj;
                     obj.frame   = 0;
@@ -222,7 +224,7 @@ int main(int argc, char **argv)
 
     
     std::string python_cmd = "python3 -m motmetrics.apps.eval_motchallenge ../data/gt_mtsc_yolo3_deepsort/ ../data/dets_"+std::to_string(int(mode))+"/ > res/metrics_"+std::to_string(int(mode))+".txt";
-    system(python_cmd.c_str());
+    // system(python_cmd.c_str());
 
     return EXIT_SUCCESS;
 }

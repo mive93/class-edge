@@ -93,19 +93,16 @@ std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, co
             b.prob = 1;
             detected.push_back(b);
 
-            if(det_out != nullptr){
-                int cl;
-                if(b.cl == 7) cl = 2; 
-                else if(b.cl == 2) cl = 1;
-                *det_out<<frame_id<<","<<tr.id<<","<<b.x<<","<<b.y<<","<<b.w<<","<<b.h<<","<<cl<<",-1,-1,-1\n";
-            }
+            if(det_out != nullptr && b.cl == CAR_ID)
+                *det_out<<frame_id<<","<<tr.id<<","<<b.x<<","<<b.y<<","<<b.w<<","<<b.h<<","<<CAR_ID_AICC<<",1,-1,-1,-1\n";
             
             //convert into viewer coordinates
-            for(auto cp: camera_pixels){
-                if(verbose)
-                    std::cout<<"x:\t"<<cp.x<<"\t y:\t"<<cp.y<<std::endl;
-                line.points.push_back(viewer->convertPosition(cp.x*scale_x, cp.y*scale_y, -0.004, cam_id));
-            }
+            if(show)
+                for(auto cp: camera_pixels){
+                    if(verbose)
+                        std::cout<<"x:\t"<<cp.x<<"\t y:\t"<<cp.y<<std::endl;
+                    line.points.push_back(viewer->convertPosition(cp.x*scale_x, cp.y*scale_y, -0.004, cam_id));
+                }
             line.color = tk::gui::Color_t {tr.r, tr.g, tr.b, 255};
             lines.push_back(line);
         }
