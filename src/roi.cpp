@@ -40,78 +40,62 @@ bool sortByBoxY(const cv::Rect &a, const cv::Rect &b) {
     return (a.y < b.y);
 } 
 
-std::vector<cv::Rect> box_clustering(std::vector<cv::Rect> &input_box) {
-    std::vector<cv::Rect> output_box;
-    std::vector<cv::Rect> x_box;
-    std::vector<int> id_eaten;
-    int distance_th = 5;
-    int overlap_th = 0.1;
-    bool union_flag;
+bool checkDistance(int pt1, int off1, int pt2, int off2, int th) {
+    return ((std::abs(pt1 + off1 - pt2) < th) || (std::abs(pt2 + off2 - pt1) < th));
+}
+
+bool checkOverlap(int pt1, int off1, int pt2, int off2, float th) {
+    int overlap = std::abs((pt1 + off1) - (pt2 + off2));
+    return ((overlap <  th * off1) || (overlap < th * off2));
+}
+
+cv::Rect boxUnion(cv::Rect b1, cv::Rect b2) {
+    cv::Rect box;
+    box.x = (b1.x <= b2.x)? b1.x : b2.x;
+    box.y = (b1.y <= b2.y)? b1.y : b2.y;
+    box.width = (b1.x + b1.width >= b2.x + b2.width)? b1.x + b1.width - box.x : b2.x + b2.width - box.x;
+    box.height = (b1.y + b1.height >= b2.y + b2.height)? b1.y + b1.height - box.y : b2.y + b2.height - box.y;
+    return box;
+}
+
+void box_clustering(std::vector<cv::Rect> &input_box) {
+    int distance_th = 15;
+    float overlap_th = 1.0;
     //sort boxes for increasing x coordinate
     std::sort(input_box.begin(), input_box.end(), sortByBoxX);
     for(int i = 0; i <input_box.size(); i++) {
-        union_flag = false;
-        // already seen it
-        if(std::count(id_eaten.begin(), id_eaten.end(), i))
-            continue;
-        for(int j = i; j<input_box.size(); j++) {
-            // no overlap (element are sorted)
-            if(input_box.at(i).x + input_box.at(i).width < input_box.at(j).x)
+        for(int j = i+1; j<input_box.size(); j++) {
+            if(checkDistance(input_box.at(i).y, input_box.at(i).height, input_box.at(j).y, input_box.at(j).height, distance_th) &&
+                checkOverlap(input_box.at(i).x, input_box.at(i).width, input_box.at(j).x, input_box.at(j).width, overlap_th)) {
+                input_box.at(i) = boxUnion(input_box.at(i), input_box.at(j));
+                input_box.erase(input_box.begin()+j);
+                i--;
                 break;
-            if(std::abs(input_box.at(i).x + input_box.at(i).height - input_box.at(j).x) < distance_th &&
-               std::abs((input_box.at(i).x + input_box.at(i).width) - (input_box.at(j).x + input_box.at(j).width) < 
-                        overlap_th * input_box.at(i).width)) {
-                union_flag = true;
-                id_eaten.push_back(j);
-                cv::Rect box;
-                box.x = std::min(input_box.at(i).x, input_box.at(j).x);
-                box.y = std::min(input_box.at(i).y, input_box.at(j).y);
-                box.width = std::max(input_box.at(i).x + input_box.at(i).width, input_box.at(j).x + input_box.at(j).width) - box.x;
-                box.x = std::max(input_box.at(i).y + input_box.at(i).height, input_box.at(j).y + input_box.at(j).height) - box.y;
-                x_box.push_back(box);
             }
         }
-        if(!union_flag)
-            x_box.push_back(input_box.at(i));
     }
-    id_eaten.clear();
+
     //sort boxes for increasing y coordinate
-    std::sort(x_box.begin(), x_box.end(), sortByBoxY);
-    for(int i = 0; i <x_box.size(); i++) {
-        union_flag = false;
-        // already seen it
-        if(std::count(id_eaten.begin(), id_eaten.end(), i))
-            continue;
-        for(int j = i; j<x_box.size(); j++) {
-            // no overlap (element are sorted)
-            if(x_box.at(i).y + x_box.at(i).height < x_box.at(j).y)
+    std::sort(input_box.begin(), input_box.end(), sortByBoxY);
+    for(int i = 0; i <input_box.size(); i++) {
+        for(int j = i+1; j<input_box.size(); j++) {
+            if(checkDistance(input_box.at(i).x, input_box.at(i).width, input_box.at(j).x, input_box.at(j).width, distance_th) &&
+                checkOverlap(input_box.at(i).y, input_box.at(i).height, input_box.at(j).y, input_box.at(j).height, overlap_th)) {
+                input_box.at(i) = boxUnion(input_box.at(i), input_box.at(j));
+                input_box.erase(input_box.begin()+j);
+                i--;
                 break;
-            if(std::abs(x_box.at(i).y + x_box.at(i).width - x_box.at(j).y) < distance_th &&
-               std::abs((x_box.at(i).y + x_box.at(i).height) - (x_box.at(j).y + x_box.at(j).height) < 
-                        overlap_th * x_box.at(i).height)) {
-                union_flag = true;
-                id_eaten.push_back(j);
-                cv::Rect box;
-                box.x = std::min(x_box.at(i).x, x_box.at(j).x);
-                box.y = std::min(x_box.at(i).y, x_box.at(j).y);
-                box.width = std::max(x_box.at(i).x + x_box.at(i).width, x_box.at(j).x + x_box.at(j).width) - box.x;
-                box.x = std::max(x_box.at(i).y + x_box.at(i).height, x_box.at(j).y + x_box.at(j).height) - box.y;
-                output_box.push_back(box);
             }
         }
-        if(!union_flag)
-            output_box.push_back(input_box.at(i));
     }
-
-    return output_box;
-
 }
 
 void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::Mat& frame_out, std::vector<cv::Mat>& batches, std::vector<cv::Rect>& or_rects) {    
     //find clusters of points given and image with only moving objects
     std::vector<std::vector<cv::Point>> contours;
     findContours(back_mask.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
-
+    cv::Mat frame_vis = cv::Mat(frame_in.rows, frame_in.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::Mat frame_vis2 = cv::Mat(frame_in.rows, frame_in.cols, CV_8UC3, cv::Scalar(0, 0, 0));
     //for each cluster create a box
     frame_out = frame_in.clone();
     std::vector<cv::Rect> box_contours;
@@ -121,8 +105,11 @@ void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::M
         //create box
         cv::Rect box = cv::boundingRect(contours[i]);
         box_contours.push_back(box);
+
+        // cv::Mat s = frame_in(box);
+        // s.copyTo(frame_vis(box));
     }
-    box_contours = box_clustering(box_contours);
+    box_clustering(box_contours);
 
     std::vector<std::pair<cv::Mat, cv::Rect>> roi_contours;
     for (auto box : box_contours) {
@@ -140,6 +127,17 @@ void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::M
         batches.push_back(roi_contours[i].first);
         or_rects.push_back(roi_contours[i].second);
     }
+    
+    // for (auto elem : roi_contours)
+    // {
+    //     cv::Mat roi = elem.first;
+    //     roi.copyTo(frame_vis2(elem.second));
+    // }
+    // cv::imshow("before", frame_vis);
+    // cv::waitKey(1);
+    // cv::imshow("after", frame_vis2);
+    // cv::waitKey(1);
+
 }
 
 std::vector<tk::dnn::box> concatDetections(const std::vector<std::vector<tk::dnn::box>>& batchDetected, const std::vector<cv::Rect>& or_rects){
@@ -256,7 +254,6 @@ std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dn
                 FatalError("bs1 needed");
             bg_suppressed = bs1->update(frame);
             prof.tock("backgroundsuppression1");
-            std::cout<<"bs_suppression --- "<<bg_suppressed.size()<<std::endl;
             //inference
             prof.tick("inference");
             batch_dnn_input.push_back(bg_suppressed.clone());
@@ -273,7 +270,6 @@ std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dn
             if(bs == nullptr)
                 FatalError("bs needed");
             mask = bs->getBackgroundSuppression(frame);
-            // cv::bitwise_not(frame, bg_suppressed, aus);
             cv::copyTo(frame, bg_suppressed, mask);
             // cv::imshow("bs", bg_suppressed);
             // cv::waitKey(1);
