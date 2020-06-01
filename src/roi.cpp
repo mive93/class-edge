@@ -220,7 +220,7 @@ std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dn
             prof.tock("convert dets");
             return detected;
         }
-        case edge::FULL_IMG:
+        case edge::FULL_IMG: {
             //inference
             prof.tick("inference");
             batch_dnn_input.push_back(frame.clone());
@@ -228,7 +228,8 @@ std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dn
             prof.tock("inference");
             
             return detNN->detected;
-        case edge::COLLAGE:
+        }
+        case edge::COLLAGE: {
             //background suppression
             prof.tick("backgroundsuppression2");
             if(bs2 == nullptr)
@@ -247,13 +248,36 @@ std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dn
             bs2->concatDetections(detNN->detected);
             prof.tock("convert dets");
             return detNN->detected;
-        case edge::FULL_IMG_BS:
+        }
+        case edge::FULL_IMG_BS: {
             //background suppression
             prof.tick("backgroundsuppression1");
             if(bs1 == nullptr)
                 FatalError("bs1 needed");
             bg_suppressed = bs1->update(frame);
             prof.tock("backgroundsuppression1");
+            std::cout<<"bs_suppression --- "<<bg_suppressed.size()<<std::endl;
+            //inference
+            prof.tick("inference");
+            batch_dnn_input.push_back(bg_suppressed.clone());
+            detNN->update(batch_dnn_input, batch_dnn_input.size());
+            prof.tock("inference");
+
+            //draw boxes
+            return detNN->detected;
+        }
+        case edge::FULL_IMG_BS_ONLY_RGB: {
+            cv::Mat mask;
+            //background suppression
+            prof.tick("backgroundsuppression_rgb");
+            if(bs == nullptr)
+                FatalError("bs needed");
+            mask = bs->getBackgroundSuppression(frame);
+            // cv::bitwise_not(frame, bg_suppressed, aus);
+            cv::copyTo(frame, bg_suppressed, mask);
+            // cv::imshow("bs", bg_suppressed);
+            // cv::waitKey(1);
+            prof.tock("backgroundsuppression_rgb");
 
             //inference
             prof.tick("inference");
@@ -263,6 +287,7 @@ std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dn
 
             //draw boxes
             return detNN->detected;
+        }
         default:
             break;
     }

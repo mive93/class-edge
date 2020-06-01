@@ -22,12 +22,14 @@
 #define MAX_BATCHES 32
 
 namespace edge{
-enum DetProcess_t { FULL_IMG,       //default, feeding the netwotk with full image
-                    BS_BATCHES,     //feeding the network with batches got from background suppression
-                    CANNY_BATCHES,  //feeding the network with batches got from frame disparity + canny
-                    OF_BATCHES,     //feeding the network with batches got from frame disparity
-                    FULL_IMG_BS,    //feeding the network with black full image and only colored foreground objects
-                    COLLAGE         //feeding the network with collage of batches got from background suppression
+enum DetProcess_t { FULL_IMG,               //default, feeding the netwotk with full image
+                    BS_BATCHES,             //feeding the network with batches got from background suppression
+                    CANNY_BATCHES,          //feeding the network with batches got from frame disparity + canny
+                    OF_BATCHES,             //feeding the network with batches got from frame disparity
+                    FULL_IMG_BS,            //feeding the network with black full image and only colored foreground objects
+                    FULL_IMG_BS_ONLY_RGB,   //feeding the network with black full image and only colored pixels corresponding 
+                                            // to the white pixels coming out from the background suppression 
+                    COLLAGE                 //feeding the network with collage of batches got from background suppression
                     };
 }
 

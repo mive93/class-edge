@@ -86,7 +86,8 @@ int main(int argc, char *argv[]) {
     std::string net = "yolo3_64_fp32.rt";
     char ntype = 'y';
     int n_classes = 80;
-    if(mode == edge::FULL_IMG || mode == edge::FULL_IMG_BS || mode == edge::COLLAGE) {
+    if(mode == edge::FULL_IMG || mode == edge::FULL_IMG_BS ||
+        mode == edge::FULL_IMG_BS_ONLY_RGB || mode == edge::COLLAGE) {
         net = "yolo3_berkeley_fp32.rt";
         n_classes = 10;
     }
