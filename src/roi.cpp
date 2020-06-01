@@ -32,6 +32,81 @@ bool sortByRoiSize(const std::pair<cv::Mat, cv::Rect> &a, const std::pair<cv::Ma
     return (a.first.rows*a.first.cols > b.first.rows*b.first.cols); 
 } 
 
+bool sortByBoxX(const cv::Rect &a, const cv::Rect &b) { 
+    return (a.x < b.x); 
+} 
+
+bool sortByBoxY(const cv::Rect &a, const cv::Rect &b) { 
+    return (a.y < b.y);
+} 
+
+std::vector<cv::Rect> box_clustering(std::vector<cv::Rect> &input_box) {
+    std::vector<cv::Rect> output_box;
+    std::vector<cv::Rect> x_box;
+    std::vector<int> id_eaten;
+    int distance_th = 5;
+    int overlap_th = 0.1;
+    bool union_flag;
+    //sort boxes for increasing x coordinate
+    std::sort(input_box.begin(), input_box.end(), sortByBoxX);
+    for(int i = 0; i <input_box.size(); i++) {
+        union_flag = false;
+        // already seen it
+        if(std::count(id_eaten.begin(), id_eaten.end(), i))
+            continue;
+        for(int j = i; j<input_box.size(); j++) {
+            // no overlap (element are sorted)
+            if(input_box.at(i).x + input_box.at(i).width < input_box.at(j).x)
+                break;
+            if(std::abs(input_box.at(i).x + input_box.at(i).height - input_box.at(j).x) < distance_th &&
+               std::abs((input_box.at(i).x + input_box.at(i).width) - (input_box.at(j).x + input_box.at(j).width) < 
+                        overlap_th * input_box.at(i).width)) {
+                union_flag = true;
+                id_eaten.push_back(j);
+                cv::Rect box;
+                box.x = std::min(input_box.at(i).x, input_box.at(j).x);
+                box.y = std::min(input_box.at(i).y, input_box.at(j).y);
+                box.width = std::max(input_box.at(i).x + input_box.at(i).width, input_box.at(j).x + input_box.at(j).width) - box.x;
+                box.x = std::max(input_box.at(i).y + input_box.at(i).height, input_box.at(j).y + input_box.at(j).height) - box.y;
+                x_box.push_back(box);
+            }
+        }
+        if(!union_flag)
+            x_box.push_back(input_box.at(i));
+    }
+    id_eaten.clear();
+    //sort boxes for increasing y coordinate
+    std::sort(x_box.begin(), x_box.end(), sortByBoxY);
+    for(int i = 0; i <x_box.size(); i++) {
+        union_flag = false;
+        // already seen it
+        if(std::count(id_eaten.begin(), id_eaten.end(), i))
+            continue;
+        for(int j = i; j<x_box.size(); j++) {
+            // no overlap (element are sorted)
+            if(x_box.at(i).y + x_box.at(i).height < x_box.at(j).y)
+                break;
+            if(std::abs(x_box.at(i).y + x_box.at(i).width - x_box.at(j).y) < distance_th &&
+               std::abs((x_box.at(i).y + x_box.at(i).height) - (x_box.at(j).y + x_box.at(j).height) < 
+                        overlap_th * x_box.at(i).height)) {
+                union_flag = true;
+                id_eaten.push_back(j);
+                cv::Rect box;
+                box.x = std::min(x_box.at(i).x, x_box.at(j).x);
+                box.y = std::min(x_box.at(i).y, x_box.at(j).y);
+                box.width = std::max(x_box.at(i).x + x_box.at(i).width, x_box.at(j).x + x_box.at(j).width) - box.x;
+                box.x = std::max(x_box.at(i).y + x_box.at(i).height, x_box.at(j).y + x_box.at(j).height) - box.y;
+                output_box.push_back(box);
+            }
+        }
+        if(!union_flag)
+            output_box.push_back(input_box.at(i));
+    }
+
+    return output_box;
+
+}
+
 void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::Mat& frame_out, std::vector<cv::Mat>& batches, std::vector<cv::Rect>& or_rects) {    
     //find clusters of points given and image with only moving objects
     std::vector<std::vector<cv::Point>> contours;
@@ -39,12 +114,18 @@ void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::M
 
     //for each cluster create a box
     frame_out = frame_in.clone();
-    std::vector<std::pair<cv::Mat, cv::Rect>> roi_contours;
+    std::vector<cv::Rect> box_contours;
     for (int i = 0; i < contours.size(); ++i){
         // Remove small blobs
         if (contours[i].size() < 100) continue;
         //create box
         cv::Rect box = cv::boundingRect(contours[i]);
+        box_contours.push_back(box);
+    }
+    box_contours = box_clustering(box_contours);
+
+    std::vector<std::pair<cv::Mat, cv::Rect>> roi_contours;
+    for (auto box : box_contours) {
         //extract box from original image
         cv::Mat roi = cv::Mat(frame_in,box);
         roi_contours.push_back(std::pair<cv::Mat, cv::Rect>(roi, box));
