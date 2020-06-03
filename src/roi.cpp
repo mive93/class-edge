@@ -49,6 +49,11 @@ bool checkOverlap(int pt1, int off1, int pt2, int off2, float th) {
     return ((overlap <  th * off1) || (overlap < th * off2));
 }
 
+bool checkIntersaction(cv::Rect b1, cv::Rect b2) {
+    return (((b1.x < b2.x) && (b1.x + b1.width > b2.x)) || ((b2.x < b1.x) && (b2.x + b2.width > b1.x))) &&
+            (((b1.y < b2.y) && (b1.y + b1.height > b2.y)) || ((b2.y < b1.y) && (b2.y + b2.height > b1.y)));
+}
+
 cv::Rect boxUnion(cv::Rect b1, cv::Rect b2) {
     cv::Rect box;
     box.x = (b1.x <= b2.x)? b1.x : b2.x;
@@ -59,32 +64,40 @@ cv::Rect boxUnion(cv::Rect b1, cv::Rect b2) {
 }
 
 void box_clustering(std::vector<cv::Rect> &input_box) {
-    int distance_th = 15;
-    float overlap_th = 1.0;
-    //sort boxes for increasing x coordinate
-    std::sort(input_box.begin(), input_box.end(), sortByBoxX);
-    for(int i = 0; i <input_box.size(); i++) {
-        for(int j = i+1; j<input_box.size(); j++) {
-            if(checkDistance(input_box.at(i).y, input_box.at(i).height, input_box.at(j).y, input_box.at(j).height, distance_th) &&
-                checkOverlap(input_box.at(i).x, input_box.at(i).width, input_box.at(j).x, input_box.at(j).width, overlap_th)) {
-                input_box.at(i) = boxUnion(input_box.at(i), input_box.at(j));
-                input_box.erase(input_box.begin()+j);
-                i--;
-                break;
+    int distance_th = 10;
+    float overlap_th = 0.3;
+    bool end = true;
+    while(end) {
+        end = false;
+        //sort boxes for increasing x coordinate
+        std::sort(input_box.begin(), input_box.end(), sortByBoxX);
+        for(int i = 0; i <input_box.size(); i++) {
+            for(int j = i+1; j<input_box.size(); j++) {
+                if((checkDistance(input_box.at(i).y, input_box.at(i).height, input_box.at(j).y, input_box.at(j).height, distance_th) &&
+                    checkOverlap(input_box.at(i).x, input_box.at(i).width, input_box.at(j).x, input_box.at(j).width, overlap_th)) ||
+                    checkIntersaction(input_box.at(i), input_box.at(j))) {
+                    input_box.at(i) = boxUnion(input_box.at(i), input_box.at(j));
+                    input_box.erase(input_box.begin()+j);
+                    i--;
+                    end = true;
+                    break;
+                }
             }
         }
-    }
 
-    //sort boxes for increasing y coordinate
-    std::sort(input_box.begin(), input_box.end(), sortByBoxY);
-    for(int i = 0; i <input_box.size(); i++) {
-        for(int j = i+1; j<input_box.size(); j++) {
-            if(checkDistance(input_box.at(i).x, input_box.at(i).width, input_box.at(j).x, input_box.at(j).width, distance_th) &&
-                checkOverlap(input_box.at(i).y, input_box.at(i).height, input_box.at(j).y, input_box.at(j).height, overlap_th)) {
-                input_box.at(i) = boxUnion(input_box.at(i), input_box.at(j));
-                input_box.erase(input_box.begin()+j);
-                i--;
-                break;
+        //sort boxes for increasing y coordinate
+        std::sort(input_box.begin(), input_box.end(), sortByBoxY);
+        for(int i = 0; i <input_box.size(); i++) {
+            for(int j = i+1; j<input_box.size(); j++) {
+                if((checkDistance(input_box.at(i).x, input_box.at(i).width, input_box.at(j).x, input_box.at(j).width, distance_th) &&
+                    checkOverlap(input_box.at(i).y, input_box.at(i).height, input_box.at(j).y, input_box.at(j).height, overlap_th)) ||
+                    checkIntersaction(input_box.at(i), input_box.at(j))) {
+                    input_box.at(i) = boxUnion(input_box.at(i), input_box.at(j));
+                    input_box.erase(input_box.begin()+j);
+                    end = true;
+                    i--;
+                    break;
+                }
             }
         }
     }
@@ -94,6 +107,7 @@ void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::M
     //find clusters of points given and image with only moving objects
     std::vector<std::vector<cv::Point>> contours;
     findContours(back_mask.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+    // findContours(back_mask.clone(), contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
     cv::Mat frame_vis = cv::Mat(frame_in.rows, frame_in.cols, CV_8UC3, cv::Scalar(0, 0, 0));
     cv::Mat frame_vis2 = cv::Mat(frame_in.rows, frame_in.cols, CV_8UC3, cv::Scalar(0, 0, 0));
     //for each cluster create a box
