@@ -64,7 +64,7 @@ cv::Rect boxUnion(cv::Rect b1, cv::Rect b2) {
 }
 
 void box_clustering(std::vector<cv::Rect> &input_box) {
-    int distance_th = 10;
+    int distance_th = 50;
     float overlap_th = 0.3;
     bool end = true;
     while(end) {
@@ -103,7 +103,23 @@ void box_clustering(std::vector<cv::Rect> &input_box) {
     }
 }
 
-void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::Mat& frame_out, std::vector<cv::Mat>& batches, std::vector<cv::Rect>& or_rects) {    
+
+double iou(const cv::Rect& a, const cv::Rect& b){
+    double area1 = double(a.width) * double(a.height);
+	double area2 = double(b.width) * double(b.height);
+
+	double x_overlap = std::max(0., std::min(double(a.x + a.width), double(b.x + b.width)) - std::max(double(a.x), double(b.x)));
+	double y_overlap = std::max(0., std::min(double(a.y + a.height), double(b.y + b.height)) - std::max(double(a.y), double(b.y)));
+	double intersectionArea = x_overlap*y_overlap;
+	double unionArea = area1 + area2 - intersectionArea;
+    // std::cout<<area1<<" "<<area2<<" "<<intersectionArea<<" "<<unionArea<<std::endl;
+    // std::cout<<intersectionArea / unionArea<<std::endl;
+	double iou = intersectionArea / unionArea;
+    return iou;
+}
+
+// void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::Mat& frame_out, std::vector<cv::Mat>& batches, std::vector<cv::Rect>& or_rects) {    
+void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::Mat& frame_out, std::vector<cv::Mat>& batches, std::vector<cv::Rect>& or_rects, const std::vector<cv::Mat>& tr_batches, const std::vector<cv::Rect>& tr_rects) {    
     //find clusters of points given and image with only moving objects
     std::vector<std::vector<cv::Point>> contours;
     findContours(back_mask.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
@@ -115,7 +131,7 @@ void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::M
     std::vector<cv::Rect> box_contours;
     for (int i = 0; i < contours.size(); ++i){
         // Remove small blobs
-        if (contours[i].size() < 100) continue;
+        if (contours[i].size() < 300) continue;
         //create box
         cv::Rect box = cv::boundingRect(contours[i]);
         box_contours.push_back(box);
@@ -123,6 +139,9 @@ void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::M
         // cv::Mat s = frame_in(box);
         // s.copyTo(frame_vis(box));
     }
+    // std::cout<<tr_rects.size()<<std::endl;
+    for(int i=0; i<tr_rects.size(); ++i)
+        box_contours.push_back(tr_rects[i]);
     box_clustering(box_contours);
 
     std::vector<std::pair<cv::Mat, cv::Rect>> roi_contours;
@@ -133,25 +152,48 @@ void getBatchesFromMovingObjs(const cv::Mat& frame_in, cv::Mat& back_mask, cv::M
         //draw box on the original image
         rectangle(frame_out, box, cv::Scalar(0,0,255), 2);
     }
+    
     //sort boxes for decreasing size
     std::sort(roi_contours.begin(), roi_contours.end(), sortByRoiSize); 
 
-    //select only first MAX_BATCHES bigger boxes
-    for(int i=0; i<roi_contours.size() && i<MAX_BATCHES; ++i){
-        batches.push_back(roi_contours[i].first);
-        or_rects.push_back(roi_contours[i].second);
-    }
-    
-    // for (auto elem : roi_contours)
-    // {
-    //     cv::Mat roi = elem.first;
-    //     roi.copyTo(frame_vis2(elem.second));
-    // }
-    // cv::imshow("before", frame_vis);
-    // cv::waitKey(1);
-    // cv::imshow("after", frame_vis2);
-    // cv::waitKey(1);
+    // std::cout<<"before NMS: "<<roi_contours.size()<<std::endl;
 
+    std::vector<std::pair<cv::Mat, cv::Rect>> roi_contours_clean;
+    std::vector<std::pair<cv::Mat, cv::Rect>> remaining;
+    while (roi_contours.size() > 0){
+        remaining.clear();
+        std::pair<cv::Mat, cv::Rect> cur = roi_contours[0];
+        roi_contours_clean.push_back(cur);
+        for (size_t j = 1; j < roi_contours.size(); j++){
+            if (iou(roi_contours[0].second, roi_contours[j].second) <= 1e-5){
+                remaining.push_back(roi_contours[j]);
+            }
+            // else
+                // std::cout<<"iou: "<< iou(roi_contours[0].second, roi_contours[j].second)<<std::endl;
+        }
+        roi_contours.clear();
+        roi_contours = remaining;
+    }
+
+    // std::cout<<"after NMS: "<<roi_contours_clean.size()<<std::endl;
+
+
+    cv::Mat frame_test = frame_out.clone();
+    batches.clear();
+    or_rects.clear();
+
+    //select only first MAX_BATCHES bigger boxes
+    for(int i=0; i<roi_contours_clean.size() && i<MAX_BATCHES; ++i){
+        batches.push_back(roi_contours_clean[i].first);
+        or_rects.push_back(roi_contours_clean[i].second);
+        rectangle(frame_test, roi_contours_clean[i].second, cv::Scalar(0,0,255), 2);
+                
+    }
+
+    
+
+    // cv::imshow("roi", frame_test);
+    // cv::waitKey(1);
 }
 
 std::vector<tk::dnn::box> concatDetections(const std::vector<std::vector<tk::dnn::box>>& batchDetected, const std::vector<cv::Rect>& or_rects){
@@ -172,7 +214,7 @@ std::vector<tk::dnn::box> concatDetections(const std::vector<std::vector<tk::dnn
     return detected;
 }
 
-std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dnn::DetectionNN *detNN, cv::Mat & frame, std::vector<cv::Mat>& batch_dnn_input, edge::Profiler& prof, edge::BackGroundSuppression* bs, const bool first_iteration, cv::Mat *pre_canny, cv::Mat *old_frame, edge::BackGroundSuppression1* bs1, edge::BackGroundSuppression2* bs2){
+std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dnn::DetectionNN *detNN, cv::Mat & frame, std::vector<cv::Mat>& batch_dnn_input, edge::Profiler& prof, edge::BackGroundSuppression* bs, const bool first_iteration, cv::Mat *pre_canny, cv::Mat *old_frame, edge::BackGroundSuppression1* bs1, edge::BackGroundSuppression2* bs2, std::vector<tk::dnn::box> *old_det){
 
     batch_dnn_input.clear();
     cv::Mat bg_suppressed;
@@ -213,16 +255,36 @@ std::vector<tk::dnn::box> detectionProcess(const edge::DetProcess_t mode, tk::dn
             cv::Mat fg_boxes;
             std::vector<cv::Mat> batches;
             std::vector<cv::Rect> or_rects;
+
+            std::vector<cv::Mat> tr_batches;
+            std::vector<cv::Rect> tr_rects;
+
+            if(old_det != nullptr && old_det->size()){
+                
+                // cv::Mat frame_out = frame.clone();
+                for(auto d: *old_det){
+                    // std::cout<<d.x<<" "<<d.y<<" "<<d.x+d.w<<" "<< d.y+d.h<<std::endl;
+                    cv::Rect r(cv::Point2i(std::max(0,int(d.x)), std::max(0,int(d.y))), cv::Point2i(std::min(int(d.x+d.w), 1920), std::min(int(d.y+d.h),1080)));
+                    tr_rects.push_back(r);
+                    tr_batches.push_back(cv::Mat(frame,r));
+                    // rectangle(frame_out, r, cv::Scalar(0,0,255), 2);
+                }
+                // cv::imshow("tr_roi", frame_out);
+                // cv::waitKey(1);
+            }
             
             //boxes extraction
             prof.tick("extract boxes");
-            getBatchesFromMovingObjs(frame, bg_suppressed, fg_boxes, batches, or_rects);
+            getBatchesFromMovingObjs(frame, bg_suppressed, fg_boxes, batches, or_rects, tr_batches, tr_rects);
             prof.tock("extract boxes");
 
             //inference
             prof.tick("inference");
-            for(auto b:batches)
+            for(auto b:batches){
+                // cv::imshow("b", b);
+                // cv::waitKey(0);
                 batch_dnn_input.push_back(b.clone());
+            }
             detNN->update(batch_dnn_input, batch_dnn_input.size());
             prof.tock("inference");
             

@@ -6,12 +6,14 @@
 #include "tkDNN/CenternetDetection.h"
 #include "tkDNN/MobilenetDetection.h"
 #include "tkDNN/Yolo3Detection.h"
+#include "tkDNN/BoundingBox.h"
 
 #include "undistort.h"
 #include "configuration.h"
 #include "Profiler.h"
 #include "BackGroundSuppression1.h"
 #include "BackGroundSuppression2.h"
+
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -41,12 +43,14 @@ void getBatchesFromMovingObjs(  const cv::Mat& frame_in, cv::Mat& back_mask, cv:
                                 std::vector<cv::Mat>& batches, std::vector<cv::Rect>& or_rects);
 
 std::vector<tk::dnn::box> concatDetections( const std::vector<std::vector<tk::dnn::box>>& batchDetected, 
-                                            const std::vector<cv::Rect>& or_rects);
+                                            const std::vector<cv::Rect>& or_rects,
+                                            const std::vector<cv::Mat>& tr_batches, const std::vector<cv::Rect>& tr_rects);
 
 std::vector<tk::dnn::box> detectionProcess( const edge::DetProcess_t mode, tk::dnn::DetectionNN *detNN, cv::Mat & frame, 
                                             std::vector<cv::Mat>& batch_dnn_input, edge::Profiler& prof, 
                                             edge::BackGroundSuppression* bs=nullptr, const bool first_iteration=false, 
                                             cv::Mat *pre_canny=nullptr, cv::Mat *old_frame=nullptr, 
-                                            edge::BackGroundSuppression1* bs1=nullptr, edge::BackGroundSuppression2* bs2=nullptr);
+                                            edge::BackGroundSuppression1* bs1=nullptr, edge::BackGroundSuppression2* bs2=nullptr,
+                                            std::vector<tk::dnn::box> *old_det = nullptr);
 
 #endif /*ROI_H*/

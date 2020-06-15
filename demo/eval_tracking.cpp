@@ -62,6 +62,7 @@ int main(int argc, char **argv)
 
     //detection
     std::vector<tk::dnn::box> detected;
+    std::vector<tk::dnn::box> old_detected;
     cv::Mat frame;
     std::vector<cv::Mat> batch_dnn_input;
 
@@ -176,7 +177,8 @@ int main(int argc, char **argv)
             //detection process
             prof.tick("det process");
             detected.clear();
-            detected = detectionProcess(mode,detNN, frame, batch_dnn_input, prof, &bs, first_iteration, &pre_canny, &old_frame, &bs1, &bs2);
+            detected = detectionProcess(mode,detNN, frame, batch_dnn_input, prof, &bs, first_iteration, &pre_canny, &old_frame, &bs1, &bs2, &old_detected);
+            old_detected = detected;
             prof.tock("det process");
 
             //feed the tracker
