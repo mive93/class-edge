@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <fstream>
 
+#include "tkCommon/common.h"
 #include "tkCommon/geodetic_conv.h"
 #include "tkDNN/DetectionNN.h"
 #include "EdgeViewer.h"

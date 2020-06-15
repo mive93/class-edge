@@ -143,7 +143,7 @@ class EdgeViewer : public tk::gui::Viewer {
                     glColor4f(1,1,1,1);
                     cd.xScale = xLim;
                     cd.yScale = cd.xScale*cd.aspectRatio;
-                    tkDrawTexture(cd.frameTexture, cd.xScale, cd.yScale);
+                    tkDrawTexture(cd.frameTexture, cd.yScale, cd.xScale);
                 } glPopMatrix();
 
                 //draw detections

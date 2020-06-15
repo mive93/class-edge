@@ -141,7 +141,7 @@ void *elaborateSingleCamera(void *ptr)
     
 
     cv::Mat frame;
-    cv::Mat dnn_input;
+    std::vector<cv::Mat> dnn_input;
     cv::Mat distort;
     cv::Mat map1, map2;
 
@@ -201,7 +201,8 @@ void *elaborateSingleCamera(void *ptr)
 
             //inference
             prof.tick("Inference");
-            dnn_input = frame.clone();  
+            dnn_input.clear();
+            dnn_input.push_back(frame.clone());  
             cam->detNN->update(dnn_input);
             detected= cam->detNN->detected;
             prof.tock("Inference");
