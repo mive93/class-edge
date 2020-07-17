@@ -84,6 +84,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
                         "-t\ttype of network (only y|c|m admissed)\n"
                         "-c\tnumber of classes for the network\n"
                         "-m\tmap.tif path (to get GPS position)\n"
+                        "-s\tshow (0=false, 1=true)\n"
                         "\tlist of camera ids (n ids expected)\n\n";
 
     //default values
@@ -100,7 +101,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
     int read_n_classes              = 0;
     
     //read arguments
-    for(int opt;(opt = getopt(argc, argv, ":i:m:n:c:t:h")) != -1;){
+    for(int opt;(opt = getopt(argc, argv, ":i:m:s:n:c:t:h")) != -1;){
         switch(opt){
             case 'h':
                 std::cout<<help<<std::endl;
@@ -113,6 +114,9 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
                 break;
             case 'c':
                 read_n_classes = atoi(optarg);
+                break;
+            case 's':
+                show = atoi(optarg);
                 break;
             case 'n':
                 read_net = optarg;
