@@ -12,6 +12,8 @@
 #include "EdgeViewer.h"
 
 #define MAX_CAMERAS 10
+#define VERSION_MAJOR 1
+#define VERSION_MINOR 1
 
 namespace edge {
 struct camera_params
@@ -57,5 +59,6 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c);
 extern edge::EdgeViewer *viewer;
 extern bool gRun;
 extern bool show;
+extern bool verbose;
 
 #endif /*DATA_H*/

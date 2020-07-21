@@ -110,3 +110,4 @@ classes: 10
 type: !<!> y
 tif: !<!> ../data/masa_map.tif
 height: 540
+password: ""

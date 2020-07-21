@@ -149,7 +149,7 @@ void *elaborateSingleCamera(void *ptr)
     std::vector<tracking::obj_m>    cur_frame;
 
     double north, east;
-    bool verbose = false;
+    bool ce_verbose = false;
     bool first_iteration = true; 
 
     float scale_x   = cam->calibWidth  / cam->streamWidth;
@@ -227,7 +227,7 @@ void *elaborateSingleCamera(void *ptr)
             //feed the viewer
             prof.tick("Viewer feeding");
             if(show && cam->show)
-                viewer->setFrameData(frame, detected, getTrackingLines(t, *cam, 1/scale_x, 1/scale_y,verbose), cam->id);
+                viewer->setFrameData(frame, detected, getTrackingLines(t, *cam, 1/scale_x, 1/scale_y,ce_verbose), cam->id);
             prof.tock("Viewer feeding");
 
             prof.tick("Prepare message");
@@ -239,8 +239,9 @@ void *elaborateSingleCamera(void *ptr)
             }
             prof.tock("Prepare message");   
         }
-        prof.tock("Total time");    
-        prof.printStats();
+        prof.tock("Total time");   
+        if (verbose) 
+            prof.printStats();
     }
 
     checkCuda( cudaFree(d_input));

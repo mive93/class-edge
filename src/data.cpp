@@ -37,5 +37,6 @@ std::ostream& operator<<(std::ostream& os, const edge::camera& c){
 }
 
 edge::EdgeViewer *viewer = nullptr;
-bool gRun = true;
-bool show = true;
+bool gRun       = true;
+bool show       = true;
+bool verbose    = true;

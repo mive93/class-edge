@@ -38,6 +38,9 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
     type            = config["type"].as<char>();
     n_classes       = config["classes"].as<int>();
     tif_map_path    = config["tif"].as<std::string>();
+    if(config["password"])
+        password    = config["password"].as<std::string>();
+
 
     int stream_height, stream_width;
     stream_width    = config["width"].as<int>();
@@ -85,6 +88,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
                         "-c\tnumber of classes for the network\n"
                         "-m\tmap.tif path (to get GPS position)\n"
                         "-s\tshow (0=false, 1=true)\n"
+                        "-v\tverbose (0=false, 1=true)\n"
                         "\tlist of camera ids (n ids expected)\n\n";
 
     //default values
@@ -101,7 +105,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
     int read_n_classes              = 0;
     
     //read arguments
-    for(int opt;(opt = getopt(argc, argv, ":i:m:s:n:c:t:h")) != -1;){
+    for(int opt;(opt = getopt(argc, argv, ":i:m:s:v:n:c:t:h")) != -1;){
         switch(opt){
             case 'h':
                 std::cout<<help<<std::endl;
@@ -117,6 +121,9 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
                 break;
             case 's':
                 show = atoi(optarg);
+                break;
+            case 'v':
+                verbose = atoi(optarg);
                 break;
             case 'n':
                 read_net = optarg;
@@ -172,7 +179,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
     std::cout<<"Tif map in use:\t\t\t"<<tif_map_path<<std::endl;
     std::cout<<"Network rt to use:\t\t"<<net<<std::endl;
     std::cout<<"Type of network in use:\t\t"<<type<<std::endl;
-    std::cout<<"Number of classes specified:\t"<<n_classes<<std::endl;
+    std::cout<<"Number of classes specified:\t"<<n_classes<<std::endl<<std::endl;
 
     return true;
 }
@@ -303,8 +310,10 @@ std::vector<edge::camera> configure(int argc, char **argv)
         default: FatalError("Dataset type not supported yet, check number of classes in parameter file.");
     }
     
-    for(auto cp: cameras_par)
-        std::cout<<cp;
+    if(verbose){
+        for(auto cp: cameras_par)
+            std::cout<<cp;
+    }
 
     //read calibration matrixes for each camera
     std::vector<edge::camera> cameras(cameras_par.size());
@@ -323,15 +332,19 @@ std::vector<edge::camera> configure(int argc, char **argv)
     //initialize neural netwokr for each camera
     initializeCamerasNetworks(cameras, net, type, n_classes);
 
-    for(auto c: cameras)
-        std::cout<<c;
+    if(verbose){
+        for(auto c: cameras)
+            std::cout<<c;
+    }
 
     //read tif image to get georeference parameters
     double* adfGeoTransform = (double *)malloc(6 * sizeof(double));
     readTiff(tif_map_path, adfGeoTransform);
-    for(int i=0; i<6; i++)
-        std::cout<<adfGeoTransform[i]<<" ";
-    std::cout<<std::endl;
+    if(verbose){
+        for(int i=0; i<6; i++)
+            std::cout<<adfGeoTransform[i]<<" ";
+        std::cout<<std::endl;
+    }
     
     for(auto& c: cameras)
     {
@@ -342,6 +355,8 @@ std::vector<edge::camera> configure(int argc, char **argv)
         c.geoConv.initialiseReference(44.655540, 10.934315, 0);
     }
     free(adfGeoTransform);    
+
+    std::cout<<COL_ORANGEB<<"class-edge version "<<VERSION_MAJOR<<"."<<VERSION_MINOR<< COL_END<<std::endl;
 
     return cameras;
 }

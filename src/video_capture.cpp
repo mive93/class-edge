@@ -4,12 +4,12 @@ void *readVideoCapture( void *ptr )
 {
     edge::video_cap_data* data = (edge::video_cap_data*) ptr;
     
-    std::cout<<"thread: "<<data->input<<std::endl;
+    std::cout<<"Thread: "<<data->input<< " started" <<std::endl;
     cv::VideoCapture cap(data->input, cv::CAP_FFMPEG);
     if(!cap.isOpened())
         gRun = false; 
     else
-        std::cout<<"camera started\n";
+        std::cout<<"Camera correctly started.\n";
 
     const int new_width     = data->width;
     const int new_height    = data->height;
