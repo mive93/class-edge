@@ -1,6 +1,6 @@
 %YAML:1.0
 ---
-net: "yolo3_berkeley_fp16.rt"
+net: "yolo4_berkeley_fp16.rt"
 type: "y"
 classes: 10
 tif: "../data/masa_map.tif"
@@ -10,10 +10,10 @@ cameras:
   - id: 20936
     encrypted: 0
     input: "../data/20936.mp4"
-    pmatrix: "../data/pmat_new/pmat_07-03-20936_20p.txt"
-    maskfile: "../data/masks/20936_mask.jpg"
-    cameraCalib: "../data/calib_cameras/20936.params"
-    maskFileOrient: "../data/masks_orient/1920-1080_mask_null.jpg"
+    pmatrix: ""
+    maskfile: ""
+    cameraCalib: ""
+    maskFileOrient: ""
   - id: 20937
     encrypted: 1
     input: "U2FsdGVkX19hmBbSEkc+WgNtwuVjmbzYuHM1ifIcgTVuN61hS+P8K/ZjPuPLbMF42hWVj+RteOfJpEiznbtUrhzRcSqXi+dilVJP/BhlOto="

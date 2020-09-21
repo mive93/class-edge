@@ -127,10 +127,10 @@ void *elaborateSingleCamera(void *ptr)
     }
     
     //instantiate the communicator and the socket
-    Communicator<MasaMessage> communicator;
-    communicator.open_client_socket((char*)cam->ipCommunicator.c_str(), cam->portCommunicator);
-    int socket = communicator.get_socket();
-    MasaMessage message;
+    // Communicator<MasaMessage> communicator;
+    // communicator.open_client_socket((char*)cam->ipCommunicator.c_str(), cam->portCommunicator);
+    // int socket = communicator.get_socket();
+    // MasaMessage message;
     
     //initiate the tracker
     float   dt              = 0.03;
@@ -142,24 +142,26 @@ void *elaborateSingleCamera(void *ptr)
 
     cv::Mat frame;
     std::vector<cv::Mat> dnn_input;
-    cv::Mat distort;
-    cv::Mat map1, map2;
+    // cv::Mat distort;
+    // cv::Mat map1, map2;
 
     std::vector<tk::dnn::box>       detected;
-    std::vector<tracking::obj_m>    cur_frame;
+    // std::vector<tracking::obj_m>    cur_frame;
 
-    double north, east;
-    bool ce_verbose = false;
-    bool first_iteration = true; 
+    // double north, east;
+    // bool ce_verbose = false;
+    // bool first_iteration = true; 
 
-    float scale_x   = cam->calibWidth  / cam->streamWidth;
-    float scale_y   = cam->calibHeight / cam->streamHeight;
+    // float scale_x   = cam->calibWidth  / cam->streamWidth;
+    // float scale_y   = cam->calibHeight / cam->streamHeight;
 
-    uint8_t *d_input, *d_output; 
-    float *d_map1, *d_map2;
+    // uint8_t *d_input, *d_output; 
+    // float *d_map1, *d_map2;
 
     //profiling
     edge::Profiler prof(std::to_string(cam->id));
+
+    std::vector<edge::tracker_line> void_lines;
 
     while(gRun){
         prof.tick("Total time");
@@ -167,37 +169,37 @@ void *elaborateSingleCamera(void *ptr)
         //copy the frame that the last frame read by the video capture thread
         prof.tick("Copy frame");
         data.mtxF.lock();
-        distort = data.frame.clone();
+        frame = data.frame.clone();
         data.mtxF.unlock();
         prof.tock("Copy frame");
         
-        if(distort.data) {
+        if(frame.data) {
             // undistort 
-            prof.tick("Undistort");
-            if (first_iteration){
-                cam->calibMat.at<double>(0,0)*=  double(cam->streamWidth) / double(cam->calibWidth);
-                cam->calibMat.at<double>(0,2)*=  double(cam->streamWidth) / double(cam->calibWidth);
-                cam->calibMat.at<double>(1,1)*=  double(cam->streamWidth) / double(cam->calibWidth);
-                cam->calibMat.at<double>(1,2)*=  double(cam->streamWidth) / double(cam->calibWidth);
+            // prof.tick("Undistort");
+            // if (first_iteration){
+            //     cam->calibMat.at<double>(0,0)*=  double(cam->streamWidth) / double(cam->calibWidth);
+            //     cam->calibMat.at<double>(0,2)*=  double(cam->streamWidth) / double(cam->calibWidth);
+            //     cam->calibMat.at<double>(1,1)*=  double(cam->streamWidth) / double(cam->calibWidth);
+            //     cam->calibMat.at<double>(1,2)*=  double(cam->streamWidth) / double(cam->calibWidth);
 
-                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, cv::Size(cam->streamWidth, cam->streamHeight), CV_32F, map1, map2);
+            //     cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, cv::Size(cam->streamWidth, cam->streamHeight), CV_32F, map1, map2);
 
-                checkCuda( cudaMalloc(&d_input, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
-                checkCuda( cudaMalloc(&d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
-                checkCuda( cudaMalloc(&d_map1, map1.cols*map1.rows*map1.channels()*sizeof(float)) );
-                checkCuda( cudaMalloc(&d_map2, map2.cols*map2.rows*map2.channels()*sizeof(float)) );
-                frame = distort.clone();
+            //     checkCuda( cudaMalloc(&d_input, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
+            //     checkCuda( cudaMalloc(&d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
+            //     checkCuda( cudaMalloc(&d_map1, map1.cols*map1.rows*map1.channels()*sizeof(float)) );
+            //     checkCuda( cudaMalloc(&d_map2, map2.cols*map2.rows*map2.channels()*sizeof(float)) );
+            //     frame = distort.clone();
 
-                checkCuda( cudaMemcpy(d_map1, (float*)map1.data,  map1.cols*map1.rows*map1.channels()*sizeof(float), cudaMemcpyHostToDevice));
-                checkCuda( cudaMemcpy(d_map2, (float*)map2.data,  map2.cols*map2.rows*map2.channels()*sizeof(float), cudaMemcpyHostToDevice));
+            //     checkCuda( cudaMemcpy(d_map1, (float*)map1.data,  map1.cols*map1.rows*map1.channels()*sizeof(float), cudaMemcpyHostToDevice));
+            //     checkCuda( cudaMemcpy(d_map2, (float*)map2.data,  map2.cols*map2.rows*map2.channels()*sizeof(float), cudaMemcpyHostToDevice));
                 
-                first_iteration = false;
-            }
-            checkCuda( cudaMemcpy(d_input, (uint8_t*)distort.data,  distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyHostToDevice));
-            remap(d_input, cam->streamWidth, cam->streamHeight, 3, d_map1, d_map2, d_output, cam->streamWidth , cam->streamHeight, 3);
-            checkCuda( cudaMemcpy((uint8_t*)frame.data , d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyDeviceToHost));
-            // cv::remap(distort, frame, map1, map2, cv::INTER_LINEAR);
-            prof.tock("Undistort");
+            //     first_iteration = false;
+            // }
+            // checkCuda( cudaMemcpy(d_input, (uint8_t*)distort.data,  distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyHostToDevice));
+            // remap(d_input, cam->streamWidth, cam->streamHeight, 3, d_map1, d_map2, d_output, cam->streamWidth , cam->streamHeight, 3);
+            // checkCuda( cudaMemcpy((uint8_t*)frame.data , d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyDeviceToHost));
+            // // cv::remap(distort, frame, map1, map2, cv::INTER_LINEAR);
+            // prof.tock("Undistort");
 
             //inference
             prof.tick("Inference");
@@ -208,45 +210,45 @@ void *elaborateSingleCamera(void *ptr)
             prof.tock("Inference");
 
             //feed the tracker
-            prof.tick("Tracker feeding");
-            cur_frame.clear();
-            for(auto d:detected){
-                if(checkClass(d.cl, cam->dataset)){
-                    convertCameraPixelsToMapMeters((d.x + d.w / 2)*scale_x, (d.y + d.h)*scale_y, d.cl, *cam, north, east);
-                    tracking::obj_m obj;
-                    obj.frame   = 0;
-                    obj.cl      = d.cl;
-                    obj.x       = north;
-                    obj.y       = east;
-                    cur_frame.push_back(obj);
-                }
-            }
-            t.track(cur_frame,tr_verbose);
-            prof.tock("Tracker feeding");
+            // prof.tick("Tracker feeding");
+            // cur_frame.clear();
+            // for(auto d:detected){
+            //     if(checkClass(d.cl, cam->dataset)){
+            //         convertCameraPixelsToMapMeters((d.x + d.w / 2)*scale_x, (d.y + d.h)*scale_y, d.cl, *cam, north, east);
+            //         tracking::obj_m obj;
+            //         obj.frame   = 0;
+            //         obj.cl      = d.cl;
+            //         obj.x       = north;
+            //         obj.y       = east;
+            //         cur_frame.push_back(obj);
+            //     }
+            // }
+            // t.track(cur_frame,tr_verbose);
+            // prof.tock("Tracker feeding");
 
             //feed the viewer
             prof.tick("Viewer feeding");
             if(show && cam->show)
-                viewer->setFrameData(frame, detected, getTrackingLines(t, *cam, 1/scale_x, 1/scale_y,ce_verbose), cam->id);
+                viewer->setFrameData(frame, detected, void_lines, cam->id);
             prof.tock("Viewer feeding");
 
-            prof.tick("Prepare message");
-            //send the data if the message is not empty
-            prepareMessage(t, message, cam->geoConv, cam->id, cam->dataset);
-            if (!message.objects.empty()){
-                communicator.send_message(&message, cam->portCommunicator);
-                // std::cout<<"message sent!"<<std::endl;
-            }
-            prof.tock("Prepare message");   
+            // prof.tick("Prepare message");
+            // //send the data if the message is not empty
+            // prepareMessage(t, message, cam->geoConv, cam->id, cam->dataset);
+            // if (!message.objects.empty()){
+            //     communicator.send_message(&message, cam->portCommunicator);
+            //     // std::cout<<"message sent!"<<std::endl;
+            // }
+            // prof.tock("Prepare message");   
         }
         prof.tock("Total time");   
         if (verbose) 
             prof.printStats();
     }
 
-    checkCuda( cudaFree(d_input));
-    checkCuda( cudaFree(d_output));
-    checkCuda( cudaFree(d_map1));
-    checkCuda( cudaFree(d_map2));
+    // checkCuda( cudaFree(d_input));
+    // checkCuda( cudaFree(d_output));
+    // checkCuda( cudaFree(d_map1));
+    // checkCuda( cudaFree(d_map2));
     return (void *)0;
 }

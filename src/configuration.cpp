@@ -318,14 +318,14 @@ std::vector<edge::camera> configure(int argc, char **argv)
     //read calibration matrixes for each camera
     std::vector<edge::camera> cameras(cameras_par.size());
     for(size_t i=0; i<cameras.size(); ++i){
-        readCalibrationMatrix(cameras_par[i].cameraCalibPath, cameras[i].calibMat, cameras[i].distCoeff, cameras[i].calibWidth, cameras[i].calibHeight);
-        readProjectionMatrix(cameras_par[i].pmatrixPath, cameras[i].prjMat);
+        // readCalibrationMatrix(cameras_par[i].cameraCalibPath, cameras[i].calibMat, cameras[i].distCoeff, cameras[i].calibWidth, cameras[i].calibHeight);
+        // readProjectionMatrix(cameras_par[i].pmatrixPath, cameras[i].prjMat);
         cameras[i].id           = cameras_par[i].id;
         cameras[i].input        = cameras_par[i].input;
         cameras[i].streamWidth  = cameras_par[i].streamWidth;
         cameras[i].streamHeight = cameras_par[i].streamHeight;
         cameras[i].show         = cameras_par[i].show;
-        cameras[i].invPrjMat    = cameras[i].prjMat.inv();
+        // cameras[i].invPrjMat    = cameras[i].prjMat.inv();
         cameras[i].dataset      = dataset;
     }
 
@@ -338,23 +338,23 @@ std::vector<edge::camera> configure(int argc, char **argv)
     }
 
     //read tif image to get georeference parameters
-    double* adfGeoTransform = (double *)malloc(6 * sizeof(double));
-    readTiff(tif_map_path, adfGeoTransform);
-    if(verbose){
-        for(int i=0; i<6; i++)
-            std::cout<<adfGeoTransform[i]<<" ";
-        std::cout<<std::endl;
-    }
+    // double* adfGeoTransform = (double *)malloc(6 * sizeof(double));
+    // readTiff(tif_map_path, adfGeoTransform);
+    // if(verbose){
+    //     for(int i=0; i<6; i++)
+    //         std::cout<<adfGeoTransform[i]<<" ";
+    //     std::cout<<std::endl;
+    // }
     
-    for(auto& c: cameras)
-    {
-        c.adfGeoTransform = (double *)malloc(6 * sizeof(double));
-        memcpy(c.adfGeoTransform, adfGeoTransform, 6 * sizeof(double) );
+    // for(auto& c: cameras)
+    // {
+    //     c.adfGeoTransform = (double *)malloc(6 * sizeof(double));
+    //     memcpy(c.adfGeoTransform, adfGeoTransform, 6 * sizeof(double) );
 
-        //initialize the geodetic converter with a point in the MASA
-        c.geoConv.initialiseReference(44.655540, 10.934315, 0);
-    }
-    free(adfGeoTransform);    
+    //     //initialize the geodetic converter with a point in the MASA
+    //     c.geoConv.initialiseReference(44.655540, 10.934315, 0);
+    // }
+    // free(adfGeoTransform);    
 
     std::cout<<COL_ORANGEB<<"class-edge version "<<VERSION_MAJOR<<"."<<VERSION_MINOR<< COL_END<<std::endl;
 
