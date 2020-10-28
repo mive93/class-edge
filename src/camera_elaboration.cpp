@@ -98,8 +98,12 @@ void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::commo
             i = tr.predList.size() -1;
             geoConv.enu2Geodetic(tr.predList[i].x, tr.predList[i].y, 0, &latitude, &longitude, &altitude);
             //add RoadUser to the message
-            if(checkClass(tr.cl, dataset))
-                message.objects.push_back(getRoadUser(latitude, longitude, tr.predList[i].vel, tr.predList[i].yaw, tr.cl, dataset));
+            if(checkClass(tr.cl, dataset)){
+                
+                RoadUser tmp = getRoadUser(latitude, longitude, tr.predList[i].vel, tr.predList[i].yaw, tr.traj.back().precision, tr.cl, dataset);
+                message.objects.push_back(tmp);
+            }
+                
         }
     }
     message.cam_idx = cam_id;
@@ -111,12 +115,35 @@ void *elaborateSingleCamera(void *ptr)
 {
     edge::camera* cam = (edge::camera*) ptr;
     std::cout<<"Starting camera: "<< cam->id << std::endl;
-
     pthread_t video_cap;
     edge::video_cap_data data;
     data.input  = (char*)cam->input.c_str();
     data.width  = cam->streamWidth;
     data.height = cam->streamHeight;
+    cam->precision = cv::Mat(cv::Size(cam->calibWidth, cam->calibHeight), CV_32F, 0.0); 
+
+    constexpr auto CAMERA_DIR = "../data/";  
+      
+    std::string pixels_data_path = CAMERA_DIR + std::to_string(cam->id) + "/caches";
+
+    std::ifstream error;
+    error.open(pixels_data_path.c_str());
+    if (error){
+        for (int y = 0; y < cam->calibHeight; y++){ //height (number of rows)
+            for (int x = 0; x < cam->calibWidth; x++) { //width (number of columns)
+                float tmp;
+                for(int z = 0; z < 4; z++)
+                    error.read(reinterpret_cast<char*> (&tmp), sizeof(float));
+                
+                error.read(reinterpret_cast<char*> (&tmp), sizeof(float));
+                cam->precision.at<float>(y,x) = tmp;
+            }
+        }
+        
+    } else {
+        std::cout << "#######ERROR: could not find caches file for camera " << cam->id << "#######" << std::endl;
+        return (void*)0;
+    }
 
     if(show)
         viewer->bindCamera(cam->id, &cam->show);
@@ -214,10 +241,11 @@ void *elaborateSingleCamera(void *ptr)
                 if(checkClass(d.cl, cam->dataset)){
                     convertCameraPixelsToMapMeters((d.x + d.w / 2)*scale_x, (d.y + d.h)*scale_y, d.cl, *cam, north, east);
                     tracking::obj_m obj;
-                    obj.frame   = 0;
-                    obj.cl      = d.cl;
-                    obj.x       = north;
-                    obj.y       = east;
+                    obj.frame       = 0;
+                    obj.cl          = d.cl;
+                    obj.x           = north;
+                    obj.y           = east;
+                    obj.precision   = cam->precision.at<float>((d.y + d.h)*scale_y, (d.x + d.w / 2)*scale_x);
                     cur_frame.push_back(obj);
                 }
             }
@@ -230,9 +258,12 @@ void *elaborateSingleCamera(void *ptr)
                 viewer->setFrameData(frame, detected, getTrackingLines(t, *cam, 1/scale_x, 1/scale_y,ce_verbose), cam->id);
             prof.tock("Viewer feeding");
 
-            prof.tick("Prepare message");
+            prof.tick("Prepare message"); 
             //send the data if the message is not empty
             prepareMessage(t, message, cam->geoConv, cam->id, cam->dataset);
+            /*for (tracking::obj_m  obj: t.trackers){
+                std::cout << obj.precision << std::endl;
+            }*/
             if (!message.objects.empty()){
                 communicator.send_message(&message, cam->portCommunicator);
                 // std::cout<<"message sent!"<<std::endl;

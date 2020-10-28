@@ -3,7 +3,7 @@
 	url = https://github.com/ceccocats/tkDNN
 [submodule "masa_protocol"]
 	path = masa_protocol
-	url = https://github.com/HiPeRT/MASA_protocol
+	url = https://git.hipert.unimore.it/rcavicchioli/masa_protocol.git
 [submodule "tkCommon"]
 	path = tkCommon
 	url = https://github.com/ceccocats/tkCommon

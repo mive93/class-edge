@@ -58,18 +58,20 @@ std::ostream& operator<<(std::ostream& os, const RoadUser& o){
     os<< "latitude\t"       << o.latitude           << std::endl;
     os<< "longitude\t"      << o.longitude          << std::endl;
     os<< "speed\t\t"        << int(o.speed)         << std::endl;
+    os<< "precision\t"      << o.precision          << std::endl;
     os<< "orientation\t"    << int(o.orientation)   << std::endl;
     os<< "category\t"       << o.category           << std::endl;
     os<<"----------------------------------------------------\n";
     return os;
 }
 
-RoadUser getRoadUser(const double latitude, const double longitude, const float velocity, const float orientation, const int cl , edge::Dataset_t dataset){
+RoadUser getRoadUser(const double latitude, const double longitude, const float velocity, const float orientation, const float precision, const int cl , edge::Dataset_t dataset){
     RoadUser r;
     r.latitude = static_cast<float>(latitude);
     r.longitude = static_cast<float>(longitude);
     r.speed = velocityToUint8(velocity);
     r.orientation = orientationToUint8(orientation);
+    r.precision = precision;
     r.category = classToCategory(cl, dataset);
     return r;
 }
