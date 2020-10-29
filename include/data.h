@@ -36,6 +36,7 @@ struct camera{
     cv::Mat                         invPrjMat;
     cv::Mat                         calibMat;
     cv::Mat                         distCoeff;
+    cv::Mat			                precision;
     std::string                     input = "";
     std::string                     ipCommunicator = "127.0.0.1";
     tk::dnn::DetectionNN*           detNN = nullptr;  
