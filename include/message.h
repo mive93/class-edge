@@ -37,7 +37,7 @@ uint8_t velocityToUint8(const float vel);
 
 bool checkClass(const int cl, const edge::Dataset_t dataset);
 Categories classToCategory(const int cl, const edge::Dataset_t dataset);
-RoadUser getRoadUser(const double latitude, const double longitude, const float velocity, const float orientation, const float precision, const int cl, edge::Dataset_t dataset );
+RoadUser getRoadUser(const std::vector<int> camera_id, const double latitude, const double longitude, const std::vector<int> object_id, const float velocity, const float orientation, const float precision, const int cl, edge::Dataset_t dataset );
 
 unsigned long long getTimeMs();
 

@@ -65,10 +65,12 @@ std::ostream& operator<<(std::ostream& os, const RoadUser& o){
     return os;
 }
 
-RoadUser getRoadUser(const double latitude, const double longitude, const float velocity, const float orientation, const float precision, const int cl , edge::Dataset_t dataset){
+RoadUser getRoadUser(const std::vector<int> camera_id, const double latitude, const double longitude, const std::vector<int> object_id, const float velocity, const float orientation, const float precision, const int cl , edge::Dataset_t dataset){
     RoadUser r;
+    r.camera_id = camera_id;
     r.latitude = static_cast<float>(latitude);
     r.longitude = static_cast<float>(longitude);
+    r.object_id = object_id;
     r.speed = velocityToUint8(velocity);
     r.orientation = orientationToUint8(orientation);
     r.precision = precision;

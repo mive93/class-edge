@@ -91,6 +91,8 @@ void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::commo
 {
     message.objects.clear();
     double latitude, longitude, altitude;
+    std::vector<int> cam_id_vector {cam_id};
+    std::vector<int> obj_id_vector;
     int i = 0;
     for(auto tr: t.trackers){
         if(tr.predList.size()){
@@ -100,8 +102,10 @@ void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::commo
             //add RoadUser to the message
             if(checkClass(tr.cl, dataset)){
                 
-                RoadUser tmp = getRoadUser(latitude, longitude, tr.predList[i].vel, tr.predList[i].yaw, tr.traj.back().precision, tr.cl, dataset);
+                obj_id_vector.push_back(tr.id);
+                RoadUser tmp = getRoadUser(cam_id_vector, latitude, longitude, obj_id_vector, tr.predList[i].vel, tr.predList[i].yaw, tr.traj.back().precision, tr.cl, dataset);
                 message.objects.push_back(tmp);
+                obj_id_vector.clear();
             }
                 
         }
