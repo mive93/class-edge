@@ -55,6 +55,10 @@ Categories classToCategory(const int cl, const edge::Dataset_t dataset){
 std::ostream& operator<<(std::ostream& os, const RoadUser& o){
     os<<std::setprecision(20);
     os<<"----------------------------------------------------\n";
+    os<< "camera ids\t";
+    for(int id : o.camera_id)
+        os<< id << " ";
+    os << std::endl;
     os<< "latitude\t"       << o.latitude           << std::endl;
     os<< "longitude\t"      << o.longitude          << std::endl;
     os<< "speed\t\t"        << int(o.speed)         << std::endl;
