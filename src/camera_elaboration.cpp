@@ -128,22 +128,22 @@ void *elaborateSingleCamera(void *ptr)
 
     constexpr auto CAMERA_DIR = "../data/";  
       
-    std::string pixels_data_path = CAMERA_DIR + std::to_string(cam->id) + "/caches";
+    std::string error_mat_data_path = CAMERA_DIR + std::to_string(cam->id) + "/caches";
 
-    std::ifstream error;
-    error.open(pixels_data_path.c_str());
-    if (error){
+    std::ifstream error_mat;
+    error_mat.open(error_mat_data_path.c_str());
+    if (error_mat){
         for (int y = 0; y < cam->calibHeight; y++){ //height (number of rows)
             for (int x = 0; x < cam->calibWidth; x++) { //width (number of columns)
                 float tmp;
+                //skip first 4 values, then the 5th is precision
                 for(int z = 0; z < 4; z++)
-                    error.read(reinterpret_cast<char*> (&tmp), sizeof(float));
+                    error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
                 
-                error.read(reinterpret_cast<char*> (&tmp), sizeof(float));
+                error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
                 cam->precision.at<float>(y,x) = tmp;
             }
-        }
-        
+        }  
     } else {
         std::cout << "#######ERROR: could not find caches file for camera " << cam->id << "#######" << std::endl;
         return (void*)0;
@@ -265,9 +265,7 @@ void *elaborateSingleCamera(void *ptr)
             prof.tick("Prepare message"); 
             //send the data if the message is not empty
             prepareMessage(t, message, cam->geoConv, cam->id, cam->dataset);
-            /*for (tracking::obj_m  obj: t.trackers){
-                std::cout << obj.precision << std::endl;
-            }*/
+
             if (!message.objects.empty()){
                 communicator.send_message(&message, cam->portCommunicator);
                 // std::cout<<"message sent!"<<std::endl;
