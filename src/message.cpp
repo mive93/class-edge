@@ -55,21 +55,29 @@ Categories classToCategory(const int cl, const edge::Dataset_t dataset){
 std::ostream& operator<<(std::ostream& os, const RoadUser& o){
     os<<std::setprecision(20);
     os<<"----------------------------------------------------\n";
+    os<< "camera ids\t";
+    for(int id : o.camera_id)
+        os<< id << " ";
+    os << std::endl;
     os<< "latitude\t"       << o.latitude           << std::endl;
     os<< "longitude\t"      << o.longitude          << std::endl;
     os<< "speed\t\t"        << int(o.speed)         << std::endl;
+    os<< "precision\t"      << o.precision          << std::endl;
     os<< "orientation\t"    << int(o.orientation)   << std::endl;
     os<< "category\t"       << o.category           << std::endl;
     os<<"----------------------------------------------------\n";
     return os;
 }
 
-RoadUser getRoadUser(const double latitude, const double longitude, const float velocity, const float orientation, const int cl , edge::Dataset_t dataset){
+RoadUser getRoadUser(const std::vector<int> camera_id, const double latitude, const double longitude, const std::vector<int> object_id, const float velocity, const float orientation, const float precision, const int cl , edge::Dataset_t dataset){
     RoadUser r;
+    r.camera_id = camera_id;
     r.latitude = static_cast<float>(latitude);
     r.longitude = static_cast<float>(longitude);
+    r.object_id = object_id;
     r.speed = velocityToUint8(velocity);
     r.orientation = orientationToUint8(orientation);
+    r.precision = precision;
     r.category = classToCategory(cl, dataset);
     return r;
 }

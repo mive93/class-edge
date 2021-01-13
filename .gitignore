@@ -2,4 +2,5 @@ build/
 .vscode/
 data/*mp4
 data/all_camera.yaml
-data/*tif
+data/*tif10218/
+data/*
