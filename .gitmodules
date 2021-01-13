@@ -1,13 +1,12 @@
 [submodule "tkDNN"]
 	path = tkDNN
 	url = https://github.com/ceccocats/tkDNN
-[submodule "masa_protocol"]
-	path = masa_protocol
-	url = https://git.hipert.unimore.it/rcavicchioli/masa_protocol.git
-	branch = develop-precision
 [submodule "tkCommon"]
 	path = tkCommon
 	url = https://github.com/ceccocats/tkCommon
 [submodule "class-tracker"]
 	path = class-tracker
 	url = https://github.com/mive93/class-tracker.git
+[submodule "masa_protocol"]
+	path = masa_protocol
+	url = https://git.hipert.unimore.it/rcavicchioli/masa_protocol
