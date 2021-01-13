@@ -292,6 +292,35 @@ void readTiff(const std::string& path, double *adfGeoTransform)
     }
 }
 
+void readCaches(edge::camera& cam){
+    std::string error_mat_data_path = "../data/" + std::to_string(cam.id) + "/caches";
+    cam.precision = cv::Mat(cv::Size(cam.calibWidth, cam.calibHeight), CV_32F, 0.0); 
+
+    std::ifstream error_mat;
+    error_mat.open(error_mat_data_path.c_str());
+    if (!error_mat){
+        system("wget https://cloud.hipert.unimore.it/s/cWfWK3NzrR8FoE3/download -O ../data/camera_caches.zip");
+        system("unzip -d ../data/ ../data/camera_caches.zip");
+        system("rm ../data/camera_caches.zip");
+        
+        error_mat.open(error_mat_data_path.c_str());
+        if (!error_mat)
+            FatalError("Could not find caches file for camera nor download it");
+    }
+
+    for (int y = 0; y < cam.calibHeight; y++){ //height (number of rows)
+        for (int x = 0; x < cam.calibWidth; x++) { //width (number of columns)
+            float tmp;
+            //skip first 4 values, then the 5th is precision
+            for(int z = 0; z < 4; z++)
+                error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
+            
+            error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
+            cam.precision.at<float>(y,x) = tmp;
+        }
+    }  
+}
+
 std::vector<edge::camera> configure(int argc, char **argv)
 {
     std::vector<edge::camera_params> cameras_par;
@@ -348,6 +377,8 @@ std::vector<edge::camera> configure(int argc, char **argv)
     
     for(auto& c: cameras)
     {
+        readCaches(c);
+
         c.adfGeoTransform = (double *)malloc(6 * sizeof(double));
         memcpy(c.adfGeoTransform, adfGeoTransform, 6 * sizeof(double) );
 

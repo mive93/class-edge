@@ -124,30 +124,6 @@ void *elaborateSingleCamera(void *ptr)
     data.input  = (char*)cam->input.c_str();
     data.width  = cam->streamWidth;
     data.height = cam->streamHeight;
-    cam->precision = cv::Mat(cv::Size(cam->calibWidth, cam->calibHeight), CV_32F, 0.0); 
-
-    constexpr auto CAMERA_DIR = "../data/";  
-      
-    std::string error_mat_data_path = CAMERA_DIR + std::to_string(cam->id) + "/caches";
-
-    std::ifstream error_mat;
-    error_mat.open(error_mat_data_path.c_str());
-    if (error_mat){
-        for (int y = 0; y < cam->calibHeight; y++){ //height (number of rows)
-            for (int x = 0; x < cam->calibWidth; x++) { //width (number of columns)
-                float tmp;
-                //skip first 4 values, then the 5th is precision
-                for(int z = 0; z < 4; z++)
-                    error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
-                
-                error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
-                cam->precision.at<float>(y,x) = tmp;
-            }
-        }  
-    } else {
-        std::cout << "#######ERROR: could not find caches file for camera " << cam->id << "#######" << std::endl;
-        return (void*)0;
-    }
 
     if(show)
         viewer->bindCamera(cam->id, &cam->show);
