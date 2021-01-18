@@ -293,13 +293,13 @@ void readTiff(const std::string& path, double *adfGeoTransform)
 }
 
 void readCaches(edge::camera& cam){
-    std::string error_mat_data_path = "../data/" + std::to_string(cam.id) + "/caches";
+    std::string error_mat_data_path = "../data/cache/" + std::to_string(cam.id) + "/Error_Matrix";
     cam.precision = cv::Mat(cv::Size(cam.calibWidth, cam.calibHeight), CV_32F, 0.0); 
 
     std::ifstream error_mat;
     error_mat.open(error_mat_data_path.c_str());
     if (!error_mat){
-        system("wget https://cloud.hipert.unimore.it/s/cWfWK3NzrR8FoE3/download -O ../data/camera_caches.zip");
+        system("wget https://cloud.hipert.unimore.it/s/MSXGPBjqsDf8goo/download -O ../data/camera_caches.zip");
         system("unzip -d ../data/ ../data/camera_caches.zip");
         system("rm ../data/camera_caches.zip");
         
@@ -311,10 +311,6 @@ void readCaches(edge::camera& cam){
     for (int y = 0; y < cam.calibHeight; y++){ //height (number of rows)
         for (int x = 0; x < cam.calibWidth; x++) { //width (number of columns)
             float tmp;
-            //skip first 4 values, then the 5th is precision
-            for(int z = 0; z < 4; z++)
-                error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
-            
             error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
             cam.precision.at<float>(y,x) = tmp;
         }
