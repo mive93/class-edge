@@ -144,8 +144,7 @@ void *elaborateSingleCamera(void *ptr)
     int     n_states        = 5;
     int     initial_age     = 5;
     bool    tr_verbose      = false;
-    tracking::Tracking t(n_states, dt, initial_age);
-    
+    tracking::Tracking t(n_states, dt, initial_age, (tracking::Filters_t) cam->filterType);
 
     cv::Mat frame;
     std::vector<cv::Mat> dnn_input;
