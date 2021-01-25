@@ -50,6 +50,7 @@ struct camera{
     int                             streamHeight;
     Dataset_t                       dataset;
     bool                            show = false;
+    bool                            hasCalib = false;
     
 };
 }

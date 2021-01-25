@@ -159,8 +159,8 @@ void *elaborateSingleCamera(void *ptr)
     bool ce_verbose = false;
     bool first_iteration = true; 
 
-    float scale_x   = cam->calibWidth  / cam->streamWidth;
-    float scale_y   = cam->calibHeight / cam->streamHeight;
+    float scale_x   = cam->hasCalib ? cam->calibWidth  / cam->streamWidth : 1;
+    float scale_y   = cam->hasCalib ? cam->calibHeight / cam->streamHeight: 1;
 
     uint8_t *d_input, *d_output; 
     float *d_map1, *d_map2;
@@ -179,31 +179,36 @@ void *elaborateSingleCamera(void *ptr)
         prof.tock("Copy frame");
         
         if(distort.data) {
-            // undistort 
+            //eventual undistort 
             prof.tick("Undistort");
-            if (first_iteration){
-                cam->calibMat.at<double>(0,0)*=  double(cam->streamWidth) / double(cam->calibWidth);
-                cam->calibMat.at<double>(0,2)*=  double(cam->streamWidth) / double(cam->calibWidth);
-                cam->calibMat.at<double>(1,1)*=  double(cam->streamWidth) / double(cam->calibWidth);
-                cam->calibMat.at<double>(1,2)*=  double(cam->streamWidth) / double(cam->calibWidth);
+            if(cam->hasCalib){
+                if (first_iteration){
+                    cam->calibMat.at<double>(0,0)*=  double(cam->streamWidth) / double(cam->calibWidth);
+                    cam->calibMat.at<double>(0,2)*=  double(cam->streamWidth) / double(cam->calibWidth);
+                    cam->calibMat.at<double>(1,1)*=  double(cam->streamWidth) / double(cam->calibWidth);
+                    cam->calibMat.at<double>(1,2)*=  double(cam->streamWidth) / double(cam->calibWidth);
 
-                cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, cv::Size(cam->streamWidth, cam->streamHeight), CV_32F, map1, map2);
+                    cv::initUndistortRectifyMap(cam->calibMat, cam->distCoeff, cv::Mat(), cam->calibMat, cv::Size(cam->streamWidth, cam->streamHeight), CV_32F, map1, map2);
 
-                checkCuda( cudaMalloc(&d_input, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
-                checkCuda( cudaMalloc(&d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
-                checkCuda( cudaMalloc(&d_map1, map1.cols*map1.rows*map1.channels()*sizeof(float)) );
-                checkCuda( cudaMalloc(&d_map2, map2.cols*map2.rows*map2.channels()*sizeof(float)) );
-                frame = distort.clone();
+                    checkCuda( cudaMalloc(&d_input, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
+                    checkCuda( cudaMalloc(&d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t)) );
+                    checkCuda( cudaMalloc(&d_map1, map1.cols*map1.rows*map1.channels()*sizeof(float)) );
+                    checkCuda( cudaMalloc(&d_map2, map2.cols*map2.rows*map2.channels()*sizeof(float)) );
+                    frame = distort.clone();
 
-                checkCuda( cudaMemcpy(d_map1, (float*)map1.data,  map1.cols*map1.rows*map1.channels()*sizeof(float), cudaMemcpyHostToDevice));
-                checkCuda( cudaMemcpy(d_map2, (float*)map2.data,  map2.cols*map2.rows*map2.channels()*sizeof(float), cudaMemcpyHostToDevice));
-                
-                first_iteration = false;
+                    checkCuda( cudaMemcpy(d_map1, (float*)map1.data,  map1.cols*map1.rows*map1.channels()*sizeof(float), cudaMemcpyHostToDevice));
+                    checkCuda( cudaMemcpy(d_map2, (float*)map2.data,  map2.cols*map2.rows*map2.channels()*sizeof(float), cudaMemcpyHostToDevice));
+                    
+                    first_iteration = false;
+                }
+                checkCuda( cudaMemcpy(d_input, (uint8_t*)distort.data,  distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyHostToDevice));
+                remap(d_input, cam->streamWidth, cam->streamHeight, 3, d_map1, d_map2, d_output, cam->streamWidth , cam->streamHeight, 3);
+                checkCuda( cudaMemcpy((uint8_t*)frame.data , d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyDeviceToHost));
+                // cv::remap(distort, frame, map1, map2, cv::INTER_LINEAR);
             }
-            checkCuda( cudaMemcpy(d_input, (uint8_t*)distort.data,  distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyHostToDevice));
-            remap(d_input, cam->streamWidth, cam->streamHeight, 3, d_map1, d_map2, d_output, cam->streamWidth , cam->streamHeight, 3);
-            checkCuda( cudaMemcpy((uint8_t*)frame.data , d_output, distort.cols*distort.rows*distort.channels()*sizeof(uint8_t), cudaMemcpyDeviceToHost));
-            // cv::remap(distort, frame, map1, map2, cv::INTER_LINEAR);
+            else{
+                frame = distort;
+            }
             prof.tock("Undistort");
 
             //inference

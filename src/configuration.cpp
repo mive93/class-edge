@@ -294,32 +294,27 @@ void readTiff(const std::string& path, double *adfGeoTransform)
 
 void readCaches(edge::camera& cam){
     std::string error_mat_data_path = "../data/" + std::to_string(cam.id) + "/caches";
-    cam.precision = cv::Mat(cv::Size(cam.calibWidth, cam.calibHeight), CV_32F, 0.0); 
+    if(cam.hasCalib)
+        cam.precision = cv::Mat(cv::Size(cam.calibWidth, cam.calibHeight), CV_32F, 0.0); 
+    else
+        cam.precision = cv::Mat(cv::Size(cam.streamWidth, cam.streamHeight), CV_32F, 0.0); 
 
     std::ifstream error_mat;
     error_mat.open(error_mat_data_path.c_str());
-    if (!error_mat){
-        system("wget https://cloud.hipert.unimore.it/s/EqFqKqQMk6okeEy/download -O ../data/camera_caches.zip");
-        system("unzip -d ../data/ ../data/camera_caches.zip");
-        system("rm ../data/camera_caches.zip");
-        
-        error_mat.open(error_mat_data_path.c_str());
-        if (!error_mat)
-            FatalError("Could not find caches file for camera nor download it");
-    }
-
-    for (int y = 0; y < cam.calibHeight; y++){ //height (number of rows)
-        for (int x = 0; x < cam.calibWidth; x++) { //width (number of columns)
-            float tmp;
-            //skip first 4 values, then the 5th is precision
-            for(int z = 0; z < 4; z++)
+    if (error_mat){
+        for (int y = 0; y < cam.calibHeight; y++){ //height (number of rows)
+            for (int x = 0; x < cam.calibWidth; x++) { //width (number of columns)
+                float tmp;
+                //skip first 4 values, then the 5th is precision
+                for(int z = 0; z < 4; z++)
+                    error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
+                
                 error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
-            
-            error_mat.read(reinterpret_cast<char*> (&tmp), sizeof(float));
-            cam.precision.at<float>(y,x) = tmp;
-        }
-    }  
-}
+                cam.precision.at<float>(y,x) = tmp;
+            }
+        }  
+    }
+}  
 
 std::vector<edge::camera> configure(int argc, char **argv)
 {
@@ -347,7 +342,14 @@ std::vector<edge::camera> configure(int argc, char **argv)
     //read calibration matrixes for each camera
     std::vector<edge::camera> cameras(cameras_par.size());
     for(size_t i=0; i<cameras.size(); ++i){
-        readCalibrationMatrix(cameras_par[i].cameraCalibPath, cameras[i].calibMat, cameras[i].distCoeff, cameras[i].calibWidth, cameras[i].calibHeight);
+        if(cameras_par[i].cameraCalibPath != ""){
+            cameras[i].hasCalib = true;
+            readCalibrationMatrix(  cameras_par[i].cameraCalibPath, 
+                                    cameras[i].calibMat, 
+                                    cameras[i].distCoeff, 
+                                    cameras[i].calibWidth, 
+                                    cameras[i].calibHeight);
+        }
         readProjectionMatrix(cameras_par[i].pmatrixPath, cameras[i].prjMat);
         cameras[i].id           = cameras_par[i].id;
         cameras[i].input        = cameras_par[i].input;
