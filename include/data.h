@@ -52,6 +52,7 @@ struct camera{
     int                             filterType = 0;
     Dataset_t                       dataset;
     bool                            show = false;
+    bool                            hasCalib = false;
     
 };
 }
