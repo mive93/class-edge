@@ -9,6 +9,7 @@
 #include "tkDNN/utils.h"
 #include "data.h"
 #include "Profiler.h"
+#include "message.h"
 
 namespace edge{
 
@@ -19,6 +20,8 @@ struct video_cap_data
     std::mutex mtxF;
     int width   = 0;
     int height  = 0;
+    int camId   = 0;
+    bool record = true;
 };
 }
 

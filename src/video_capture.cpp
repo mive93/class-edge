@@ -15,10 +15,21 @@ void *readVideoCapture( void *ptr )
     const int new_height    = data->height;
     cv::Mat frame, resized_frame;
 
+    cv::VideoWriter result_video;
+    std::ofstream video_timestamp;
+    if (data->record){
+        int w = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+        int h = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+        result_video.open("video_cam_"+std::to_string(data->camId)+".mp4", cv::VideoWriter::fourcc('M','P','4','V'), 30, cv::Size(w, h));
+        video_timestamp.open ("timestamp_cam_"+std::to_string(data->camId)+".txt");
+    }
+
+    uint64_t timestamp_acquisition = 0;
     edge::Profiler prof("Video capture" + std::string(data->input));
     while(gRun) {
         prof.tick("Frame acquisition");
         cap >> frame; 
+        timestamp_acquisition = getTimeMs();
         prof.tock("Frame acquisition");
         if(!frame.data) {
             usleep(1000000);
@@ -38,7 +49,18 @@ void *readVideoCapture( void *ptr )
         data->mtxF.unlock();
         prof.tock("Frame copy");
 
+        if (data->record){
+            result_video << frame;
+            video_timestamp << timestamp_acquisition << "\n";
+        }
+
         // prof.printStats();
     }
+
+    if(data->record){
+        video_timestamp.close();
+        result_video.release();
+    }
+    
     return (void *)0;
 }

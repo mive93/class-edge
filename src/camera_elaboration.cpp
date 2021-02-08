@@ -124,6 +124,7 @@ void *elaborateSingleCamera(void *ptr)
     data.input  = (char*)cam->input.c_str();
     data.width  = cam->streamWidth;
     data.height = cam->streamHeight;
+    data.camId  = cam->id;
 
     if(show)
         viewer->bindCamera(cam->id, &cam->show);
