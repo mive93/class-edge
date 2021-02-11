@@ -258,6 +258,8 @@ void *elaborateSingleCamera(void *ptr)
         if (verbose) 
             prof.printStats();
     }
+    
+    pthread_join( video_cap, NULL);
 
     checkCuda( cudaFree(d_input));
     checkCuda( cudaFree(d_output));
