@@ -17,6 +17,7 @@ struct video_cap_data
 {
     char* input     = nullptr;
     cv::Mat frame;
+    uint64_t t_stamp_ms;
     std::mutex mtxF;
     int width   = 0;
     int height  = 0;
