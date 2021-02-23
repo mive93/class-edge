@@ -17,7 +17,8 @@ void sig_handler(int signo) {
 int main(int argc, char **argv)
 {
     tk::exceptions::handleSegfault();
-    signal(SIGINT, sig_handler);    
+    std::signal(SIGINT, sig_handler);    
+    std::signal(SIGTERM, sig_handler);
 
     std::vector<edge::camera> cameras = configure(argc, argv);
 

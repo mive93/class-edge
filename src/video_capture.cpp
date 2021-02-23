@@ -45,7 +45,8 @@ void *readVideoCapture( void *ptr )
 
         prof.tick("Frame copy");
         data->mtxF.lock();
-        data->frame     = resized_frame.clone();
+        data->frame      = resized_frame.clone();
+        data->t_stamp_ms = timestamp_acquisition;
         data->mtxF.unlock();
         prof.tock("Frame copy");
 

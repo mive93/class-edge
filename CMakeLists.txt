@@ -20,17 +20,18 @@ cuda_add_library(class-kernels src/undistort.cu)
 # External Libraries
 #-------------------------------------------------------------------------------
 find_package(Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
 
 find_package(OpenCV REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPENCV")
 
 find_package(yaml-cpp REQUIRED)
 
-include_directories(/usr/include/gdal)
-
-include_directories(/usr/include/python2.7)
-
+find_package(Python3 COMPONENTS Interpreter Development)
+message("Python_FOUND:${Python3_FOUND}")
+message("Python_VERSION:${Python3_VERSION}")
+message("Python_Development_FOUND:${Python3_Development_FOUND}")
+message("Python_LIBRARIES:${Python3_LIBRARIES}")
+message("Python_INCLUDE_DIRS:${Python3_INCLUDE_DIRS}")
 
 #-------------------------------------------------------------------------------
 # Submodules
@@ -44,16 +45,36 @@ add_subdirectory(class-tracker)
 # Build libraries
 #-------------------------------------------------------------------------------
 
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 
-                    ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/include 
+                    ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/include
+                    ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/geodetic_utils/geodetic_utils/include/geodetic_utils 
+                    ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/matplotlib-cpp
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkDNN/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include
-                    ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include)
-include_directories(${CUDA_INCLUDE_DIRS} ${OPENCV_INCLUDE_DIRS} ${NVINFER_INCLUDES} ${CUDNN_INCLUDE_DIRS})
+                    ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include
+                    /usr/include/gdal
+                    ${EIGEN3_INCLUDE_DIR}
+                    ${Python3_INCLUDE_DIRS}
+                    ${OPENCV_INCLUDE_DIRS}
+                    ${CUDA_INCLUDE_DIRS}  
+                    ${NVINFER_INCLUDES} 
+                    ${CUDNN_INCLUDE_DIRS}
+                    )
 
 file(GLOB class-edge-SRC "src/*.cpp")
-set(class-edge-LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDNN_LIBRARIES} ${OpenCV_LIBS} class-kernels yaml-cpp tkDNN tkCommon class-tracker gdal python2.7)
+
+set(class-edge-LIBS ${CUDA_LIBRARIES} 
+                    ${CUDA_CUBLAS_LIBRARIES} 
+                    ${CUDNN_LIBRARIES} 
+                    ${OpenCV_LIBS} 
+                    ${Python3_LIBRARIES}
+                    gdal 
+                    yaml-cpp 
+                    tkDNN 
+                    tkCommon 
+                    class-tracker 
+                    class-kernels 
+                    )
 add_library(class-edge SHARED ${class-edge-SRC})
 target_link_libraries(class-edge ${class-edge-LIBS} )
 

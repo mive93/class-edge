@@ -87,7 +87,8 @@ std::vector<edge::tracker_line> getTrackingLines(const tracking::Tracking& t, ed
     return lines;
 }
 
-void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::common::GeodeticConverter& geoConv, const int cam_id, edge::Dataset_t dataset)
+void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::common::GeodeticConverter& geoConv, 
+                    const int cam_id, edge::Dataset_t dataset, uint64_t t_stamp_acquisition_ms)
 {
     message.objects.clear();
     double latitude, longitude, altitude;
@@ -111,7 +112,7 @@ void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::commo
         }
     }
     message.cam_idx = cam_id;
-    message.t_stamp_ms = getTimeMs();
+    message.t_stamp_ms = t_stamp_acquisition_ms;
     message.num_objects = message.objects.size();
 }
 
@@ -150,6 +151,7 @@ void *elaborateSingleCamera(void *ptr)
     cv::Mat frame;
     std::vector<cv::Mat> dnn_input;
     cv::Mat distort;
+    uint64_t timestamp_acquisition = 0;
     cv::Mat map1, map2;
 
     std::vector<tk::dnn::box>       detected;
@@ -175,6 +177,7 @@ void *elaborateSingleCamera(void *ptr)
         prof.tick("Copy frame");
         data.mtxF.lock();
         distort = data.frame.clone();
+        timestamp_acquisition = data.t_stamp_ms;
         data.mtxF.unlock();
         prof.tock("Copy frame");
         
@@ -245,7 +248,7 @@ void *elaborateSingleCamera(void *ptr)
 
             prof.tick("Prepare message"); 
             //send the data if the message is not empty
-            prepareMessage(t, message, cam->geoConv, cam->id, cam->dataset);
+            prepareMessage(t, message, cam->geoConv, cam->id, cam->dataset, timestamp_acquisition);
 
             if (!message.objects.empty()){
                 communicator.send_message(&message, cam->portCommunicator);
@@ -257,6 +260,8 @@ void *elaborateSingleCamera(void *ptr)
         if (verbose) 
             prof.printStats();
     }
+    
+    pthread_join( video_cap, NULL);
 
     checkCuda( cudaFree(d_input));
     checkCuda( cudaFree(d_output));
