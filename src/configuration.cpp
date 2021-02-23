@@ -41,14 +41,18 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
     if(config["password"])
         password    = config["password"].as<std::string>();
 
-
     int stream_height, stream_width;
     stream_width    = config["width"].as<int>();
     stream_height   = config["height"].as<int>();
 
+    if(stream_height < 0 || stream_width < 0)
+        FatalError("The dimensions of the stream have to be greater than 0");
+
     int filter_type = 0; //EKF
     if(config["filter"])
         filter_type = config["filter"].as<int>();
+        if(filter_type > 1)
+            FatalError("The values allowed for filters are 0 (EKF) and 1 (UFK)");
 
     YAML::Node cameras_yaml = config["cameras"];
     bool use_info;
