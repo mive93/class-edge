@@ -26,6 +26,7 @@ struct camera_params
     int                     id = 0;
     int                     streamWidth = 0;
     int                     streamHeight = 0;
+    int                     filterType = 0;
     bool                    show = false;    
 };
 
@@ -48,6 +49,7 @@ struct camera{
     int                             calibHeight;
     int                             streamWidth;
     int                             streamHeight;
+    int                             filterType = 0;
     Dataset_t                       dataset;
     bool                            show = false;
     bool                            hasCalib = false;

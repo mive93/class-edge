@@ -46,6 +46,10 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
     stream_width    = config["width"].as<int>();
     stream_height   = config["height"].as<int>();
 
+    int filter_type = 0; //EKF
+    if(config["filter"])
+        filter_type = config["filter"].as<int>();
+
     YAML::Node cameras_yaml = config["cameras"];
     bool use_info;
     int n_cameras = 0;
@@ -76,6 +80,7 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
         cameras_par[n_cameras-1].maskFileOrientPath = cameras_yaml[i]["maskFileOrient"].as<std::string>();
         cameras_par[n_cameras-1].streamWidth        = stream_width;
         cameras_par[n_cameras-1].streamHeight       = stream_height;
+        cameras_par[n_cameras-1].filterType         = filter_type;
         cameras_par[n_cameras-1].show               = true;
     }
 }
@@ -164,6 +169,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
         cameras_par[0].maskFileOrientPath   = "../data/masks_orient/1920-1080_mask_null.jpg";
         cameras_par[0].streamWidth          = 960;
         cameras_par[0].streamHeight         = 540;
+        cameras_par[0].filterType           = 0;
         cameras_par[0].show                 = true;
     }
     else 
@@ -355,6 +361,7 @@ std::vector<edge::camera> configure(int argc, char **argv)
         cameras[i].input        = cameras_par[i].input;
         cameras[i].streamWidth  = cameras_par[i].streamWidth;
         cameras[i].streamHeight = cameras_par[i].streamHeight;
+        cameras[i].filterType   = cameras_par[i].filterType;
         cameras[i].show         = cameras_par[i].show;
         cameras[i].invPrjMat    = cameras[i].prjMat.inv();
         cameras[i].dataset      = dataset;
