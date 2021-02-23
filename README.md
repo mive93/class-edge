@@ -18,7 +18,7 @@ This projects depends on:
 ```
 sudo apt-get install -y libeigen3-dev \
                         python3-matplotlib \
-                        python-dev \
+                        python3.6-dev \
                         libgdal-dev \
                         libcereal-dev \
                         libyaml-cpp-dev \
@@ -40,10 +40,10 @@ git submodule update --init --recursive
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
-make -j
+make -j4
 ```
 
-## How to lunch the edge
+## How to launch the edge
 
 In general (use ./edge -h for help)
 ```
@@ -72,5 +72,5 @@ Then just run
 ./encrypt <params-no-enc> <params-enc>
 ```
 where
-  * ```<params-no-enc>``` is the input parametrs file (yaml)
-  * ```<params-enc>``` is the output parametrs file (yaml) with all the input encrypted with the password the program will ask for.
+  * ```<params-no-enc>``` is the input parameters file (yaml)
+  * ```<params-enc>``` is the output parameters file (yaml) with all the input encrypted with the password the program will ask for.
