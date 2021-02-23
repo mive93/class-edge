@@ -101,7 +101,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
                         "\tlist of camera ids (n ids expected)\n\n";
 
     //default values
-    net             = "yolo3_berkeley_fp32.rt";
+    net             = "yolo4_berkeley_fp16.rt";
     tif_map_path    = "../data/masa_map.tif";
     type            = 'y';
     n_classes       = 10;
