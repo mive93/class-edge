@@ -19,6 +19,7 @@ namespace edge {
 struct camera_params
 {
     std::string             input = "";
+    std::string             resolution = "";
     std::string             pmatrixPath = "";
     std::string             maskfilePath = "";
     std::string             cameraCalibPath = "";

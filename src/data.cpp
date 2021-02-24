@@ -6,6 +6,7 @@ std::ostream& operator<<(std::ostream& os, const edge::camera_params& c){
     os<<"----------------------------------------------------\n";
     os<< "id \t\t\t" << c.id <<std::endl;
     os<< "input \t\t\t" << c.input<<std::endl;
+    os<< "resolution \t\t" << c.resolution<<std::endl;
     os<< "pmatrixPath \t\t" << c.pmatrixPath <<std::endl;
     os<< "maskfilePath \t\t" << c.maskfilePath <<std::endl;
     os<< "cameraCalibPath \t" << c.cameraCalibPath <<std::endl;
