@@ -104,7 +104,7 @@ void prepareMessage(const tracking::Tracking& t, MasaMessage& message, tk::commo
             if(checkClass(tr.cl, dataset)){
                 
                 obj_id_vector.push_back(tr.id);
-                RoadUser tmp = getRoadUser(cam_id_vector, latitude, longitude, obj_id_vector, tr.predList[i].vel, tr.predList[i].yaw, tr.traj.back().precision, tr.cl, dataset);
+                RoadUser tmp = getRoadUser(cam_id_vector, latitude, longitude, obj_id_vector, tr.predList[i].vel, tr.predList[i].yaw, tr.traj.back().error, tr.cl, dataset);
                 message.objects.push_back(tmp);
                 obj_id_vector.clear();
             }
@@ -233,7 +233,7 @@ void *elaborateSingleCamera(void *ptr)
                     obj.cl          = d.cl;
                     obj.x           = north;
                     obj.y           = east;
-                    obj.precision   = cam->precision.at<float>((d.y + d.h)*scale_y, (d.x + d.w / 2)*scale_x);
+                    obj.error       = cam->precision.at<float>((d.y + d.h)*scale_y, (d.x + d.w / 2)*scale_x);
                     cur_frame.push_back(obj);
                 }
             }
