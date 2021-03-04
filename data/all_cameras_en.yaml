@@ -126,4 +126,6 @@ type: !<!> y
 tif: !<!> ../data/masa_map.tif
 height: 540
 password: ""
-filter: 0
+filter: 1
+stream: 1
+record: 0

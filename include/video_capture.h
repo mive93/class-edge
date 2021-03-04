@@ -22,7 +22,6 @@ struct video_cap_data
     int width   = 0;
     int height  = 0;
     int camId   = 0;
-    bool record = false;
 };
 }
 

@@ -54,6 +54,11 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
         if(filter_type > 1)
             FatalError("The values allowed for filters are 0 (EKF) and 1 (UFK)");
 
+    if(config["record"]) 
+            record = config["record"].as<int>();
+    if(config["stream"])
+        stream = config["stream"].as<int>();
+
     YAML::Node cameras_yaml = config["cameras"];
     bool use_info;
     int n_cameras = 0;
@@ -92,6 +97,11 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
         cameras_par[n_cameras-1].streamHeight       = stream_height;
         cameras_par[n_cameras-1].filterType         = filter_type;
         cameras_par[n_cameras-1].show               = true;
+        
+        //simple check: if the input contains rtsp string and stream is set to false, then raise ad exception
+        if(!stream && cameras_par[n_cameras-1].input.find("rtsp") != std::string::npos) {
+            FatalError("Error: it's a rtsp stream, so you have to change the field in the yaml file\n");
+        }
     }
 }
 

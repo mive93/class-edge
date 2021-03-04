@@ -65,5 +65,7 @@ extern edge::EdgeViewer *viewer;
 extern bool gRun;
 extern bool show;
 extern bool verbose;
+extern bool record;
+extern bool stream;
 
 #endif /*DATA_H*/

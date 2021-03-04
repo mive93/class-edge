@@ -41,3 +41,5 @@ edge::EdgeViewer *viewer = nullptr;
 bool gRun       = true;
 bool show       = true;
 bool verbose    = true;
+bool record     = false;
+bool stream     = false;

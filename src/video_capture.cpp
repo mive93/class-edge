@@ -17,7 +17,7 @@ void *readVideoCapture( void *ptr )
 
     cv::VideoWriter result_video;
     std::ofstream video_timestamp;
-    if (data->record){
+    if (record){
         int w = cap.get(cv::CAP_PROP_FRAME_WIDTH);
         int h = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
         result_video.open("video_cam_"+std::to_string(data->camId)+".mp4", cv::VideoWriter::fourcc('M','P','4','V'), 30, cv::Size(w, h));
@@ -50,7 +50,7 @@ void *readVideoCapture( void *ptr )
         data->mtxF.unlock();
         prof.tock("Frame copy");
 
-        if (data->record){
+        if (record){
             result_video << frame;
             video_timestamp << timestamp_acquisition << "\n";
         }
@@ -58,7 +58,7 @@ void *readVideoCapture( void *ptr )
         // prof.printStats();
     }
 
-    if(data->record){
+    if(record){
         video_timestamp.close();
         result_video.release();
     }
