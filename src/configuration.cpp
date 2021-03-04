@@ -77,8 +77,13 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
             cameras_par[n_cameras-1].input          = decryptString(cameras_yaml[i]["input"].as<std::string>(), password);
         }
         else            
-            cameras_par[n_cameras-1].input          = cameras_yaml[i]["input"].as<std::string>(); 
-        cameras_par[n_cameras-1].resolution         = cameras_yaml[i]["resolution"].as<std::string>();
+            cameras_par[n_cameras-1].input          = cameras_yaml[i]["input"].as<std::string>();
+        if(cameras_yaml[i]["resolution"]) {
+            cameras_par[n_cameras-1].resolution         = cameras_yaml[i]["resolution"].as<std::string>();
+            // here we append some parameters to the rtsp string 
+            if(!cameras_par[n_cameras-1].resolution.empty()) 
+                cameras_par[n_cameras-1].input		    = cameras_par[n_cameras-1].input+"?resolution="+cameras_par[n_cameras-1].resolution;  
+        }
         cameras_par[n_cameras-1].pmatrixPath        = cameras_yaml[i]["pmatrix"].as<std::string>();
         cameras_par[n_cameras-1].maskfilePath       = cameras_yaml[i]["maskfile"].as<std::string>();
         cameras_par[n_cameras-1].cameraCalibPath    = cameras_yaml[i]["cameraCalib"].as<std::string>();
@@ -87,10 +92,6 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
         cameras_par[n_cameras-1].streamHeight       = stream_height;
         cameras_par[n_cameras-1].filterType         = filter_type;
         cameras_par[n_cameras-1].show               = true;
-        // here we append some parameters to the rtsp string 
-        if(!cameras_par[n_cameras-1].resolution.empty()) {
-            cameras_par[n_cameras-1].input		    = cameras_par[n_cameras-1].input+"?resolution="+cameras_par[n_cameras-1].resolution;  
-        }
     }
 }
 
