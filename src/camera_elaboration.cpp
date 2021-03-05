@@ -126,6 +126,7 @@ void *elaborateSingleCamera(void *ptr)
     data.width  = cam->streamWidth;
     data.height = cam->streamHeight;
     data.camId  = cam->id;
+    data.eaten_frame = true;
 
     if(show)
         viewer->bindCamera(cam->id, &cam->show);
@@ -178,6 +179,7 @@ void *elaborateSingleCamera(void *ptr)
         data.mtxF.lock();
         distort = data.frame.clone();
         timestamp_acquisition = data.t_stamp_ms;
+        data.eaten_frame = true;
         data.mtxF.unlock();
         prof.tock("Copy frame");
         

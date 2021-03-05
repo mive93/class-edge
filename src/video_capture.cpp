@@ -27,6 +27,10 @@ void *readVideoCapture( void *ptr )
     uint64_t timestamp_acquisition = 0;
     edge::Profiler prof("Video capture" + std::string(data->input));
     while(gRun) {
+        if(!stream && !data->eaten_frame) {
+            usleep(10000);
+            continue;
+        }
         prof.tick("Frame acquisition");
         cap >> frame; 
         timestamp_acquisition = getTimeMs();
@@ -47,6 +51,7 @@ void *readVideoCapture( void *ptr )
         data->mtxF.lock();
         data->frame      = resized_frame.clone();
         data->t_stamp_ms = timestamp_acquisition;
+        data->eaten_frame = false;
         data->mtxF.unlock();
         prof.tock("Frame copy");
 
