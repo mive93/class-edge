@@ -164,6 +164,9 @@ void *elaborateSingleCamera(void *ptr)
 
     float scale_x   = cam->hasCalib ? (float)cam->calibWidth  / (float)cam->streamWidth : 1;
     float scale_y   = cam->hasCalib ? (float)cam->calibHeight / (float)cam->streamHeight: 1;
+    float err_scale_x = !cam->precision.empty() ? (float)cam->precision.cols  / (float)cam->streamHeight: 1;
+    float err_scale_y = !cam->precision.empty() ? (float)cam->precision.rows  / (float)cam->streamHeight: 1;
+
     int pixel_prec_x, pixel_prec_y;
     uint8_t *d_input, *d_output; 
     float *d_map1, *d_map2;
@@ -235,9 +238,9 @@ void *elaborateSingleCamera(void *ptr)
                     obj.cl          = d.cl;
                     obj.x           = north;
                     obj.y           = east;
-                    pixel_prec_x   = (int)(d.x + d.w / 2)*scale_x > cam->precision.cols ? cam->precision.cols : (int)(d.x + d.w / 2)*scale_x;
-                    pixel_prec_y   = (int)(d.y + d.h)*scale_y > cam->precision.rows ? cam->precision.rows : (int)(d.y + d.h)*scale_y;
-                    obj.error       = cam->precision.at<float>(pixel_prec_y, pixel_prec_x);
+                    pixel_prec_x    = (int)(d.x + d.w / 2)*err_scale_x > cam->precision.cols ? cam->precision.cols : (int)(d.x + d.w / 2)*err_scale_x;
+                    pixel_prec_y    = (int)(d.y + d.h)*err_scale_y > cam->precision.rows ? cam->precision.rows : (int)(d.y + d.h)*err_scale_y;
+                    obj.error       = !cam->precision.empty() ? cam->precision.at<float>(pixel_prec_y, pixel_prec_x) : 0.0;
                     cur_frame.push_back(obj);
                 }
             }
