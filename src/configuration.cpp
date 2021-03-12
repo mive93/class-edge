@@ -90,13 +90,17 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
                 cameras_par[n_cameras-1].input		    = cameras_par[n_cameras-1].input+"?resolution="+cameras_par[n_cameras-1].resolution;  
         }
         cameras_par[n_cameras-1].pmatrixPath        = cameras_yaml[i]["pmatrix"].as<std::string>();
-        cameras_par[n_cameras-1].maskfilePath       = cameras_yaml[i]["maskfile"].as<std::string>();
-        cameras_par[n_cameras-1].cameraCalibPath    = cameras_yaml[i]["cameraCalib"].as<std::string>();
-        cameras_par[n_cameras-1].maskFileOrientPath = cameras_yaml[i]["maskFileOrient"].as<std::string>();
         cameras_par[n_cameras-1].streamWidth        = stream_width;
         cameras_par[n_cameras-1].streamHeight       = stream_height;
         cameras_par[n_cameras-1].filterType         = filter_type;
         cameras_par[n_cameras-1].show               = true;
+
+        if(cameras_yaml[i]["cameraCalib"])
+            cameras_par[n_cameras-1].cameraCalibPath    = cameras_yaml[i]["cameraCalib"].as<std::string>();
+        if(cameras_yaml[i]["maskFileOrient"])
+            cameras_par[n_cameras-1].maskFileOrientPath = cameras_yaml[i]["maskFileOrient"].as<std::string>();
+        if(cameras_yaml[i]["maskfile"])
+                cameras_par[n_cameras-1].maskfilePath   = cameras_yaml[i]["maskfile"].as<std::string>();
         
         //simple check: if the input contains rtsp string and stream is set to false, then raise ad exception
         if(!stream && cameras_par[n_cameras-1].input.find("rtsp") != std::string::npos) {
@@ -184,9 +188,9 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
         cameras_par[0].id                   = 20936;
         cameras_par[0].input                = "../data/20936.mp4";
         cameras_par[0].pmatrixPath          = "../data/pmat_new/pmat_07-03-20936_20p.txt";
-        cameras_par[0].maskfilePath         = "../data/masks/20936_mask.jpg";
+        cameras_par[0].maskfilePath         = "";
         cameras_par[0].cameraCalibPath      = "../data/calib_cameras/20936.params";
-        cameras_par[0].maskFileOrientPath   = "../data/masks_orient/1920-1080_mask_null.jpg";
+        cameras_par[0].maskFileOrientPath   = "";
         cameras_par[0].streamWidth          = 960;
         cameras_par[0].streamHeight         = 540;
         cameras_par[0].filterType           = 0;
