@@ -145,7 +145,7 @@ void *elaborateSingleCamera(void *ptr)
     //initiate the tracker
     float   dt              = 0.03;
     int     n_states        = 5;
-    int     initial_age     = 5;
+    int     initial_age     = 10;
     bool    tr_verbose      = false;
     tracking::Tracking t(n_states, dt, initial_age, (tracking::Filters_t) cam->filterType);
 
