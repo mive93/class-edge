@@ -54,6 +54,8 @@ Example:
 ./edge -i ../data/all_cameras_en.yaml 20939 20940 20936 6310 634
 ```
 
+To better understand the parameter file, refer to [config doc](data/README.md).
+
 ## How to initialize or update submodule
 ```
 git submodule update --init --recursive #initialize
