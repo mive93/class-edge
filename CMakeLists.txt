@@ -48,7 +48,6 @@ add_subdirectory(class-tracker)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 
                     ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/geodetic_utils/geodetic_utils/include/geodetic_utils 
-                    ${CMAKE_CURRENT_SOURCE_DIR}/class-tracker/matplotlib-cpp
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkDNN/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/tkCommon/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/masa_protocol/include
