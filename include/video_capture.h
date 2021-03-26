@@ -15,14 +15,15 @@ namespace edge{
 
 struct video_cap_data
 {
-    char* input     = nullptr;
+    char* input         = nullptr;
     cv::Mat frame;
-    uint64_t t_stamp_ms;
+    uint64_t tStampMs;
     std::mutex mtxF;
-    int width   = 0;
-    int height  = 0;
-    int camId   = 0;
-    bool eaten_frame = false;
+    int width           = 0;
+    int height          = 0;
+    int camId           = 0;
+    bool frameConsumed  = false;
+    bool gstreamer      = false;
 };
 }
 

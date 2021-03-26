@@ -5,7 +5,9 @@ void *readVideoCapture( void *ptr )
     edge::video_cap_data* data = (edge::video_cap_data*) ptr;
     
     std::cout<<"Thread: "<<data->input<< " started" <<std::endl;
-    cv::VideoCapture cap(data->input, cv::CAP_FFMPEG);
+
+    auto stream_mode = data->gstreamer ? cv::CAP_GSTREAMER : cv::CAP_FFMPEG;
+    cv::VideoCapture cap(data->input, stream_mode);
     if(!cap.isOpened())
         gRun = false; 
     else
@@ -27,7 +29,7 @@ void *readVideoCapture( void *ptr )
     uint64_t timestamp_acquisition = 0;
     edge::Profiler prof("Video capture" + std::string(data->input));
     while(gRun) {
-        if(!stream && !data->eaten_frame) {
+        if(!stream && !data->frameConsumed) {
             usleep(10000);
             continue;
         }
@@ -49,9 +51,9 @@ void *readVideoCapture( void *ptr )
 
         prof.tick("Frame copy");
         data->mtxF.lock();
-        data->frame      = resized_frame.clone();
-        data->t_stamp_ms = timestamp_acquisition;
-        data->eaten_frame = false;
+        data->frame         = resized_frame.clone();
+        data->tStampMs      = timestamp_acquisition;
+        data->frameConsumed = false;
         data->mtxF.unlock();
         prof.tock("Frame copy");
 

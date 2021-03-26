@@ -21,6 +21,10 @@ int main(int argc, char **argv)
     std::signal(SIGTERM, sig_handler);
 
     std::vector<edge::camera> cameras = configure(argc, argv);
+    if(cameras.empty()){
+        std::cout<<"No (correct) camera IDS specified as input. Closing."<<std::endl;
+        return EXIT_SUCCESS;
+    }
 
     if(show){
         //TODO allow to switch on and off viewer with signals

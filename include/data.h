@@ -18,17 +18,18 @@
 namespace edge {
 struct camera_params
 {
-    std::string             input = "";
-    std::string             resolution = "";
-    std::string             pmatrixPath = "";
-    std::string             maskfilePath = "";
-    std::string             cameraCalibPath = "";
-    std::string             maskFileOrientPath = "";
-    int                     id = 0;
-    int                     streamWidth = 0;
-    int                     streamHeight = 0;
-    int                     filterType = 0;
-    bool                    show = false;    
+    std::string                     input               = "";
+    std::string                     resolution          = "";
+    std::string                     pmatrixPath         = "";
+    std::string                     maskfilePath        = "";
+    std::string                     cameraCalibPath     = "";
+    std::string                     maskFileOrientPath  = "";
+    int                             id                  = 0;
+    int                             streamWidth         = 0;
+    int                             streamHeight        = 0;
+    int                             filterType          = 0;
+    bool                            show                = false;    
+    bool                            gstreamer           = false;    
 };
 
 enum Dataset_t { BDD, COCO, VOC};
@@ -39,22 +40,22 @@ struct camera{
     cv::Mat                         calibMat;
     cv::Mat                         distCoeff;
     cv::Mat			                precision;
-    std::string                     input = "";
-    std::string                     ipCommunicator = "127.0.0.1";
-    tk::dnn::DetectionNN*           detNN = nullptr;  
+    std::string                     input               = "";
+    std::string                     ipCommunicator      = "127.0.0.1";
+    tk::dnn::DetectionNN*           detNN               = nullptr;  
     tk::common::GeodeticConverter   geoConv; 
-    double*                         adfGeoTransform = nullptr;
-    int                             id = 0;
-    int                             portCommunicator = 8888;
+    double*                         adfGeoTransform     = nullptr;
+    int                             id                  = 0;
+    int                             portCommunicator    = 8888;
     int                             calibWidth;
     int                             calibHeight;
     int                             streamWidth;
     int                             streamHeight;
-    int                             filterType = 0;
+    int                             filterType          = 0;
     Dataset_t                       dataset;
-    bool                            show = false;
-    bool                            hasCalib = false;
-    
+    bool                            show                = false;
+    bool                            hasCalib            = false;
+    bool                            gstreamer           = false;    
 };
 }
 

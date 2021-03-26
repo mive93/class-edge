@@ -1,0 +1,27 @@
+%YAML:1.0
+---
+net: "yolo4_berkeley_fp16.rt"
+type: "y"
+classes: 10
+filter: 1
+tif: "../data/masa_map.tif"
+width: 960
+height: 540
+
+cameras: 
+  - id: 0
+    gstreamer: true
+    gstreamer.width : 1920 
+    gstreamer.height : 1080
+    gstreamer.framerate : 10
+    encrypted: 0
+    pmatrix: "../data/pmat_new/pmat_07-03-20936_20p.txt"
+    cameraCalib: "../data/calib_cameras/20936.params"
+  - id: 1
+    gstreamer: true
+    gstreamer.width : 1920 
+    gstreamer.height : 1080
+    gstreamer.framerate : 10
+    encrypted: 0
+    pmatrix: "../data/pmat_new/pmat_07-03-20937_20p.txt"
+    cameraCalib: "../data/calib_cameras/20937.params"

@@ -122,11 +122,12 @@ void *elaborateSingleCamera(void *ptr)
     std::cout<<"Starting camera: "<< cam->id << std::endl;
     pthread_t video_cap;
     edge::video_cap_data data;
-    data.input  = (char*)cam->input.c_str();
-    data.width  = cam->streamWidth;
-    data.height = cam->streamHeight;
-    data.camId  = cam->id;
-    data.eaten_frame = true;
+    data.input          = (char*)cam->input.c_str();
+    data.width          = cam->streamWidth;
+    data.height         = cam->streamHeight;
+    data.camId          = cam->id;
+    data.frameConsumed  = true;
+    data.gstreamer      = cam->gstreamer;
 
     if(show)
         viewer->bindCamera(cam->id, &cam->show);
@@ -181,8 +182,8 @@ void *elaborateSingleCamera(void *ptr)
         prof.tick("Copy frame");
         data.mtxF.lock();
         distort = data.frame.clone();
-        timestamp_acquisition = data.t_stamp_ms;
-        data.eaten_frame = true;
+        timestamp_acquisition = data.tStampMs;
+        data.frameConsumed = true;
         data.mtxF.unlock();
         prof.tock("Copy frame");
         

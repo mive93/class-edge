@@ -51,8 +51,8 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
     int filter_type = 0; //EKF
     if(config["filter"])
         filter_type = config["filter"].as<int>();
-        if(filter_type > 1)
-            FatalError("The values allowed for filters are 0 (EKF) and 1 (UFK)");
+    if(filter_type > 1)
+        FatalError("The values allowed for filters are 0 (EKF) and 1 (UFK)");
 
     if(config["record"]) 
             record = config["record"].as<int>();
@@ -73,22 +73,45 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
         if(!use_info) continue;
 
         cameras_par.resize(++n_cameras);
-        cameras_par[n_cameras-1].id                 = camera_id;
-        if (cameras_yaml[i]["encrypted"].as<int>()){
-            if(password == "") {
-                std::cout<<"Please insert the password to decript the cameras input"<<std::endl;
-                std::cin>>password;
+        cameras_par[n_cameras-1].id = camera_id;
+
+        if(cameras_yaml[i]["gstreamer"])
+            cameras_par[n_cameras-1].gstreamer = cameras_yaml[i]["gstreamer"].as<bool>();
+        else
+            cameras_par[n_cameras-1].gstreamer = false;
+
+        if(cameras_par[n_cameras-1].gstreamer){
+            // if it is a GStreamer stream it cannot be encrypted
+            cameras_par[n_cameras-1].input = "nvcamerasrc sensor-id=" + std::to_string(camera_id) + 
+                                             " intent=3 tnr-mode=1 tnr-strength=-1 edge-enhancement=-1 flicker=3 ! video/x-raw(memory:NVMM)" + 
+                                             ", width=(int)" + cameras_yaml[i]["gstreamer.width"].as<std::string>() +
+                                             ", height=(int)" + cameras_yaml[i]["gstreamer.height"].as<std::string>() +
+                                             ", framerate=(fraction)"+ cameras_yaml[i]["gstreamer.framerate"].as<std::string>() +
+                                             ", format=(string)I420 ! nvvidconv flip-method=0 ! video/x-raw" 
+                                             ", width=(int)" + cameras_yaml[i]["gstreamer.width"].as<std::string>() +
+                                             ", height=(int)" + cameras_yaml[i]["gstreamer.height"].as<std::string>() +
+                                             ", framerate=(fraction)"+ cameras_yaml[i]["gstreamer.framerate"].as<std::string>() +
+                                             ", format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink drop=true";
+        }
+        else{
+            if (cameras_yaml[i]["encrypted"].as<int>()){
+                if(password == "") {
+                    std::cout<<"Please insert the password to decript the cameras input"<<std::endl;
+                    std::cin>>password;
+                }
+                cameras_par[n_cameras-1].input = decryptString(cameras_yaml[i]["input"].as<std::string>(), password);
             }
-            cameras_par[n_cameras-1].input          = decryptString(cameras_yaml[i]["input"].as<std::string>(), password);
+            else            
+                cameras_par[n_cameras-1].input = cameras_yaml[i]["input"].as<std::string>();
+            
+            if(cameras_yaml[i]["resolution"]) {
+                cameras_par[n_cameras-1].resolution  = cameras_yaml[i]["resolution"].as<std::string>();
+                // here we append some parameters to the rtsp string 
+                if(!cameras_par[n_cameras-1].resolution.empty()) 
+                    cameras_par[n_cameras-1].input   = cameras_par[n_cameras-1].input+"?resolution="+cameras_par[n_cameras-1].resolution;  
+            }
         }
-        else            
-            cameras_par[n_cameras-1].input          = cameras_yaml[i]["input"].as<std::string>();
-        if(cameras_yaml[i]["resolution"]) {
-            cameras_par[n_cameras-1].resolution         = cameras_yaml[i]["resolution"].as<std::string>();
-            // here we append some parameters to the rtsp string 
-            if(!cameras_par[n_cameras-1].resolution.empty()) 
-                cameras_par[n_cameras-1].input		    = cameras_par[n_cameras-1].input+"?resolution="+cameras_par[n_cameras-1].resolution;  
-        }
+
         cameras_par[n_cameras-1].pmatrixPath        = cameras_yaml[i]["pmatrix"].as<std::string>();
         cameras_par[n_cameras-1].streamWidth        = stream_width;
         cameras_par[n_cameras-1].streamHeight       = stream_height;
@@ -195,6 +218,7 @@ bool readParameters(int argc, char **argv,std:: vector<edge::camera_params>& cam
         cameras_par[0].streamHeight         = 540;
         cameras_par[0].filterType           = 0;
         cameras_par[0].show                 = true;
+        cameras_par[0].gstreamer            = false;
     }
     else 
         readParamsFromYaml(params_path, cameras_ids, cameras_par, net, type, n_classes, tif_map_path);
@@ -387,6 +411,7 @@ std::vector<edge::camera> configure(int argc, char **argv)
         cameras[i].streamHeight = cameras_par[i].streamHeight;
         cameras[i].filterType   = cameras_par[i].filterType;
         cameras[i].show         = cameras_par[i].show;
+        cameras[i].gstreamer    = cameras_par[i].gstreamer;
         cameras[i].invPrjMat    = cameras[i].prjMat.inv();
         cameras[i].dataset      = dataset;
     }
