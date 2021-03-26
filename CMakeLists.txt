@@ -37,6 +37,8 @@ message("Python_INCLUDE_DIRS:${Python3_INCLUDE_DIRS}")
 # Submodules
 #-------------------------------------------------------------------------------
 
+set (WITH_MATPLOTLIB OFF)
+
 add_subdirectory(tkDNN)
 add_subdirectory(tkCommon)
 add_subdirectory(class-tracker)

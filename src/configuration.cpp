@@ -82,7 +82,7 @@ void readParamsFromYaml(const std::string& params_path, const std::vector<int>& 
 
         if(cameras_par[n_cameras-1].gstreamer){
             // if it is a GStreamer stream it cannot be encrypted
-            cameras_par[n_cameras-1].input = "nvcamerasrc sensor-id=" + std::to_string(camera_id) + 
+            cameras_par[n_cameras-1].input = "nvcamerasrc sensor-id=" + cameras_yaml[i]["gstreamer.device_id"].as<std::string>() + 
                                              " intent=3 tnr-mode=1 tnr-strength=-1 edge-enhancement=-1 flicker=3 ! video/x-raw(memory:NVMM)" + 
                                              ", width=(int)" + cameras_yaml[i]["gstreamer.width"].as<std::string>() +
                                              ", height=(int)" + cameras_yaml[i]["gstreamer.height"].as<std::string>() +
