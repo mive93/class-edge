@@ -37,7 +37,7 @@ message("Python_INCLUDE_DIRS:${Python3_INCLUDE_DIRS}")
 # Submodules
 #-------------------------------------------------------------------------------
 
-set (WITH_MATPLOTLIB OFF)
+set (WITH_MATPLOTLIB OFF CACHE BOOL "Disable matplotlib")
 
 add_subdirectory(tkDNN)
 add_subdirectory(tkCommon)
