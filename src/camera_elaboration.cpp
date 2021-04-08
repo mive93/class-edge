@@ -162,6 +162,7 @@ void *elaborateSingleCamera(void *ptr)
     double north, east;
     bool ce_verbose = false;
     bool first_iteration = true; 
+    bool new_frame = false;
 
     float scale_x   = cam->hasCalib ? (float)cam->calibWidth  / (float)cam->streamWidth : 1;
     float scale_y   = cam->hasCalib ? (float)cam->calibHeight / (float)cam->streamHeight: 1;
@@ -183,11 +184,12 @@ void *elaborateSingleCamera(void *ptr)
         data.mtxF.lock();
         distort = data.frame.clone();
         timestamp_acquisition = data.tStampMs;
+        new_frame = data.frameConsumed;
         data.frameConsumed = true;
         data.mtxF.unlock();
         prof.tock("Copy frame");
         
-        if(distort.data) {
+        if(distort.data && !new_frame) {
             //eventual undistort 
             prof.tick("Undistort");
             if(cam->hasCalib){
