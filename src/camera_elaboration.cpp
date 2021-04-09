@@ -166,7 +166,7 @@ void *elaborateSingleCamera(void *ptr)
 
     float scale_x   = cam->hasCalib ? (float)cam->calibWidth  / (float)cam->streamWidth : 1;
     float scale_y   = cam->hasCalib ? (float)cam->calibHeight / (float)cam->streamHeight: 1;
-    float err_scale_x = !cam->precision.empty() ? (float)cam->precision.cols  / (float)cam->streamHeight: 1;
+    float err_scale_x = !cam->precision.empty() ? (float)cam->precision.cols  / (float)cam->streamWidth: 1;
     float err_scale_y = !cam->precision.empty() ? (float)cam->precision.rows  / (float)cam->streamHeight: 1;
 
     int pixel_prec_x, pixel_prec_y;
