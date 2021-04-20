@@ -187,9 +187,10 @@ void *elaborateSingleCamera(void *ptr)
         new_frame = data.frameConsumed;
         data.frameConsumed = true;
         data.mtxF.unlock();
-        prof.tock("Copy frame");
         
         if(distort.data && !new_frame) {
+            prof.tock("Copy frame");
+
             //eventual undistort 
             prof.tick("Undistort");
             if(cam->hasCalib){
@@ -265,10 +266,11 @@ void *elaborateSingleCamera(void *ptr)
                 // std::cout<<"message sent!"<<std::endl;
             }
             prof.tock("Prepare message");   
+
+            prof.tock("Total time");   
+            if (verbose) 
+                prof.printStats();  
         }
-        prof.tock("Total time");   
-        if (verbose) 
-            prof.printStats();
     }
     
     pthread_join( video_cap, NULL);

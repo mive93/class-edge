@@ -30,7 +30,7 @@ void *readVideoCapture( void *ptr )
     edge::Profiler prof("Video capture" + std::string(data->input));
     while(gRun) {
         if(!stream && !data->frameConsumed) {
-            usleep(10000);
+            usleep(1000);
             continue;
         }
         prof.tick("Frame acquisition");
