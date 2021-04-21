@@ -271,6 +271,8 @@ void *elaborateSingleCamera(void *ptr)
             if (verbose) 
                 prof.printStats();  
         }
+        else 
+            usleep(1000);
     }
     
     pthread_join( video_cap, NULL);
